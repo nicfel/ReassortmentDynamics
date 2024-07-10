@@ -1,0 +1,2 @@
+transmission	recovery	population_size	d
+1.109059	1.000000	79883.000000	1.057671
