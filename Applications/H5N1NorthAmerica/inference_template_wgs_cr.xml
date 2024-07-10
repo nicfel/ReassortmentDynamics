@@ -1,0 +1,835 @@
+<beast version="2.0"
+       namespace="beast.base.inference
+                 :beast.core.util
+                 :beast.core.parameter
+                 :beast.base.evolution.alignment
+                 :beast.base.evolution.likelihood
+                 :beast.base.evolution.tree
+                 :beast.base.evolution.tree.coalescent
+				 :beast.base.evolution.alignment
+				 :beast.base.inference.parameter
+                 :beast.base.evolution.sitemodel
+                 :beast.base.evolution.substitutionmodel
+                 :beast.base.evolution.operators
+                 :beast.math.distributions
+				 :beast.base.inference.distribution
+                 :beast.base.evolution.operator
+                 :beast.base.inference.operator.kernel
+                 :feast.simulation
+                 :feast.fileio
+                 :coalre.network
+                 :coalre.statistics
+                 :coalre.simulator
+                 :coalre.distribution
+                 :coalre.operators">
+
+    <alignment id="seg1align" spec="AlignmentFromFasta" fileName="insert_seg1.fasta"/>
+    <alignment id="seg2align" spec="AlignmentFromFasta" fileName="insert_seg2.fasta"/>
+    <alignment id="seg3align" spec="AlignmentFromFasta" fileName="insert_seg3.fasta"/>
+    <alignment id="seg4align" spec="AlignmentFromFasta" fileName="insert_seg4.fasta"/>
+    <alignment id="seg5align" spec="AlignmentFromFasta" fileName="insert_seg5.fasta"/>
+    <alignment id="seg6align" spec="AlignmentFromFasta" fileName="insert_seg6.fasta"/>
+    <alignment id="seg7align" spec="AlignmentFromFasta" fileName="insert_seg7.fasta"/>
+    <alignment id="seg8align" spec="AlignmentFromFasta" fileName="insert_seg8.fasta"/>
+	
+
+    <taxonSet spec="TaxonSet" id="taxonSet">
+		insert_tips    
+	</taxonSet>
+
+    <traitSet spec="TraitSet" traitname="date-forward" id="traitSet" dateFormat="yyyy-M-dd">
+		insert_heights
+      <taxa idref="taxonSet"/>
+    </traitSet>
+
+
+    <run spec="MCMC" chainLength="50000000">
+        <state>
+            <stateNode id="seg1tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
+            <stateNode id="seg2tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
+            <stateNode id="seg3tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
+            <stateNode id="seg4tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
+            <stateNode id="seg5tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
+            <stateNode id="seg6tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
+            <stateNode id="seg7tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
+            <stateNode id="seg8tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
+
+            <stateNode id="clockRate.high" spec="RealParameter" value="0.001"/>
+            <stateNode id="popSize" spec="RealParameter" value="1.0293"/>
+            <stateNode id="reassortmentRate" spec="RealParameter" value="0.1211"/>
+
+            <stateNode id="logInfected" spec="RealParameter" value="1 1.01"/>
+            <stateNode id="rateShifts" spec="RealParameter" value="insert_times"/>
+            <stateNode id="recoveryRate" spec="RealParameter" value="1.0"/>
+            <stateNode id="InfectedToRho" spec="RealParameter" value="1"/>
+
+            <parameter id="clockRate.c" spec="parameter.RealParameter" lower="0.0" name="stateNode">insert_clock_rate</parameter>
+            
+            <parameter id="mutationRate.s:seg1" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+            <parameter id="gammaShape.s:seg1" spec="parameter.RealParameter" lower="0.1" name="stateNode">1.0</parameter>
+            <parameter id="freqParameter.s:seg1" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+            <parameter id="kappa.s:seg1" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
+
+            <parameter id="mutationRate.s:seg2" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+            <parameter id="gammaShape.s:seg2" spec="parameter.RealParameter" lower="0.1" name="stateNode">1.0</parameter>
+            <parameter id="freqParameter.s:seg2" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+            <parameter id="kappa.s:seg2" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
+
+            <parameter id="mutationRate.s:seg3" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+            <parameter id="gammaShape.s:seg3" spec="parameter.RealParameter" lower="0.1" name="stateNode">1.0</parameter>
+            <parameter id="freqParameter.s:seg3" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+            <parameter id="kappa.s:seg3" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
+
+            <parameter id="mutationRate.s:seg4" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+            <parameter id="gammaShape.s:seg4" spec="parameter.RealParameter" lower="0.1" name="stateNode">1.0</parameter>
+            <parameter id="freqParameter.s:seg4" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+            <parameter id="kappa.s:seg4" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
+
+            <parameter id="mutationRate.s:seg5" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+            <parameter id="gammaShape.s:seg5" spec="parameter.RealParameter" lower="0.1" name="stateNode">1.0</parameter>
+            <parameter id="freqParameter.s:seg5" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+            <parameter id="kappa.s:seg5" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
+
+            <parameter id="mutationRate.s:seg6" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+            <parameter id="gammaShape.s:seg6" spec="parameter.RealParameter" lower="0.1" name="stateNode">1.0</parameter>
+            <parameter id="freqParameter.s:seg6" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+            <parameter id="kappa.s:seg6" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
+
+            <parameter id="mutationRate.s:seg7" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+            <parameter id="gammaShape.s:seg7" spec="parameter.RealParameter" lower="0.1" name="stateNode">1.0</parameter>
+            <parameter id="freqParameter.s:seg7" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+            <parameter id="kappa.s:seg7" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
+
+            <parameter id="mutationRate.s:seg8" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+            <parameter id="gammaShape.s:seg8" spec="parameter.RealParameter" lower="0.1" name="stateNode">1.0</parameter>
+            <parameter id="freqParameter.s:seg8" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+            <parameter id="kappa.s:seg8" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
+
+            <stateNode id="network" spec="SimulatedCoalescentNetwork"
+                       nSegments="8" enableSegmentTreeUpdate="false">
+
+                <traitSet idref="traitSet"/>
+
+                <populationModel spec="ConstantPopulation">
+                    <popSize spec="RealParameter" value="0.095922"/>
+                </populationModel>
+
+                <reassortmentRate spec="RealParameter" value="0.47263"/>
+            </stateNode>
+        </state>
+
+        <init spec='beast.base.evolution.tree.ClusterTree' id='UPGMATree.t:XYZ26'
+          initial="@seg1tree" clusterType='upgma' taxa='@seg1align'/>
+
+        <init spec='coalre.util.InitFromTree' id='initnetwork'
+          tree="@seg1tree" network='@network'>
+        </init>
+
+
+        <init spec="SegmentTreeInitializer" network="@network">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+
+        </init>
+
+        <distribution id="posterior" spec="CompoundDistribution">
+
+            <distribution id="likelihood" spec="CompoundDistribution">
+                <distribution id="treeLikelihood.seg1" spec="TreeLikelihood">
+                    <data idref="seg1align"/>
+                    <tree idref="seg1tree"/>
+                    <siteModel spec="SiteModel" mutationRate="@mutationRate.s:seg1" gammaCategoryCount="4" shape="@gammaShape.s:seg1">
+                        <substModel id="hky.s:seg1" spec="HKY" kappa="@kappa.s:seg1">
+                            <frequencies id="estimatedFreqs.s:seg1" spec="Frequencies" frequencies="@freqParameter.s:seg1"/>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel id="StrictClock.c" spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
+                </distribution>
+
+                <distribution id="treeLikelihood.seg2" spec="TreeLikelihood">
+                    <data idref="seg2align"/>
+                    <tree idref="seg2tree"/>
+                    <siteModel spec="SiteModel" mutationRate="@mutationRate.s:seg2" gammaCategoryCount="4" shape="@gammaShape.s:seg2">
+                        <substModel id="hky.s:seg2" spec="HKY" kappa="@kappa.s:seg2">
+                            <frequencies id="estimatedFreqs.s:seg2" spec="Frequencies" frequencies="@freqParameter.s:seg2"/>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel idref="StrictClock.c"/>
+                </distribution>
+
+                <distribution id="treeLikelihood.seg3" spec="TreeLikelihood">
+                    <data idref="seg3align"/>
+                    <tree idref="seg3tree"/>
+                    <siteModel spec="SiteModel" mutationRate="@mutationRate.s:seg3" gammaCategoryCount="4" shape="@gammaShape.s:seg3">
+                        <substModel id="hky.s:seg3" spec="HKY" kappa="@kappa.s:seg3">
+                            <frequencies id="estimatedFreqs.s:seg3" spec="Frequencies" frequencies="@freqParameter.s:seg3"/>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel idref="StrictClock.c"/>
+                </distribution>
+
+                <distribution id="treeLikelihood.seg4" spec="TreeLikelihood">
+                    <data idref="seg4align"/>
+                    <tree idref="seg4tree"/>
+                    <siteModel spec="SiteModel" mutationRate="@mutationRate.s:seg4" gammaCategoryCount="4" shape="@gammaShape.s:seg4">
+                        <substModel id="hky.s:seg4" spec="HKY" kappa="@kappa.s:seg4">
+                            <frequencies id="estimatedFreqs.s:seg4" spec="Frequencies" frequencies="@freqParameter.s:seg4"/>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel idref="StrictClock.c"/>
+                </distribution>
+
+                <distribution id="treeLikelihood.seg5" spec="TreeLikelihood">
+                    <data idref="seg5align"/>
+                    <tree idref="seg5tree"/>
+                    <siteModel spec="SiteModel" mutationRate="@mutationRate.s:seg5" gammaCategoryCount="4" shape="@gammaShape.s:seg5">
+                        <substModel id="hky.s:seg5" spec="HKY" kappa="@kappa.s:seg5">
+                            <frequencies id="estimatedFreqs.s:seg5" spec="Frequencies" frequencies="@freqParameter.s:seg5"/>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel idref="StrictClock.c"/>
+                </distribution>
+
+                <distribution id="treeLikelihood.seg6" spec="TreeLikelihood">
+                    <data idref="seg6align"/>
+                    <tree idref="seg6tree"/>
+                    <siteModel spec="SiteModel" mutationRate="@mutationRate.s:seg6" gammaCategoryCount="4" shape="@gammaShape.s:seg6">
+                        <substModel id="hky.s:seg6" spec="HKY" kappa="@kappa.s:seg6">
+                            <frequencies id="estimatedFreqs.s:seg6" spec="Frequencies" frequencies="@freqParameter.s:seg6"/>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel idref="StrictClock.c"/>
+                </distribution>
+
+                <distribution id="treeLikelihood.seg7" spec="TreeLikelihood">
+                    <data idref="seg7align"/>
+                    <tree idref="seg7tree"/>
+                    <siteModel spec="SiteModel" mutationRate="@mutationRate.s:seg7" gammaCategoryCount="4" shape="@gammaShape.s:seg7">
+                        <substModel id="hky.s:seg7" spec="HKY" kappa="@kappa.s:seg7">
+                            <frequencies id="estimatedFreqs.s:seg7" spec="Frequencies" frequencies="@freqParameter.s:seg7"/>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel idref="StrictClock.c"/>
+                </distribution>
+
+                <distribution id="treeLikelihood.seg8" spec="TreeLikelihood">
+                    <data idref="seg8align"/>
+                    <tree idref="seg8tree"/>
+                    <siteModel spec="SiteModel" mutationRate="@mutationRate.s:seg8" gammaCategoryCount="4" shape="@gammaShape.s:seg8">
+                        <substModel id="hky.s:seg8" spec="HKY" kappa="@kappa.s:seg8">
+                            <frequencies id="estimatedFreqs.s:seg8" spec="Frequencies" frequencies="@freqParameter.s:seg8"/>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel idref="StrictClock.c"/>
+                </distribution>
+
+
+            </distribution>
+
+            <distribution id="prior" spec="CompoundDistribution">
+                <distribution id="networkPrior" spec="CoalescentWithReassortment">
+                    <networkIntervals spec="NetworkIntervals" network="@network"/>
+
+                    <!-- isconstant-->
+                    <populationModel id="splinePop" spec="coalre.dynamics.NeDynamicsFromSpline">
+                        <spline id="spline" spec="coalre.dynamics.Spline" infectedIsNe="true" logInfected="@logInfected" rateShifts="@rateShifts" uninfectiousRate="@recoveryRate" gridPoints="500"/>
+                    </populationModel>
+
+                    <timeVaryingReassortmentRates id="reassortmentDynamics" spec="coalre.dynamics.PiecewiseConstantReassortmentRates" reassortmentRate="@reassortmentRate">
+                        <rateShifts id="rateShifts2" spec="RealParameter" value="0 insert_EOS"/>
+                    </timeVaryingReassortmentRates>
+                    <!--isconstant -->
+                    
+                    <!-- isISkyline-->
+                    <populationModel id="splinePop" spec="coalre.dynamics.NeDynamicsFromSpline">
+                        <spline id="spline" spec="coalre.dynamics.Spline" logInfected="@logInfected" rateShifts="@rateShifts" uninfectiousRate="@recoveryRate" gridPoints="500"/>
+                    </populationModel>
+                    <timeVaryingReassortmentRates id="reassortmentDynamics" spec="coalre.dynamics.RecombinationDynamicsFromSpline" InfectedToRho="@InfectedToRho" spline="@spline">
+                        <spline idref="spline"/>
+                    </timeVaryingReassortmentRates>
+                    <!--isISkyline -->
+
+                    <!-- isNeSkyline-->
+                    <populationModel id="splinePop" spec="coalre.dynamics.NeDynamicsFromSpline">
+                        <spline id="spline" spec="coalre.dynamics.Spline" infectedIsNe="true" logInfected="@logInfected" rateShifts="@rateShifts" uninfectiousRate="@recoveryRate" gridPoints="500"/>
+                    </populationModel>
+                    <timeVaryingReassortmentRates id="reassortmentDynamics" spec="coalre.dynamics.PiecewiseConstantReassortmentRateScalers" InfectedToRho="@InfectedToRho" spline="@spline">
+                        <rateShifts id="rateShifts2" spec="RealParameter" value="0 insert_EOS"/>
+                    </timeVaryingReassortmentRates>
+                    <!--isNeSkyline -->
+
+                    <!-- isVariable-->
+                    <populationModel id="splinePop" spec="coalre.dynamics.NeDynamicsFromSpline">
+                        <spline id="spline" spec="coalre.dynamics.Spline" infectedIsNe="true" logInfected="@logInfected" rateShifts="@rateShifts" uninfectiousRate="@recoveryRate" gridPoints="500"/>
+                    </populationModel>
+                    <timeVaryingReassortmentRates id="reassortmentDynamics" spec="coalre.dynamics.RecombinationDynamicsFromSpline">
+                        <infectedToRhoSpline id="rhoSpline" spec="coalre.dynamics.Spline" infectedIsNe="true" logInfected="@InfectedToRho" rateShifts="@rateShifts" uninfectiousRate="@recoveryRate" gridPoints="500"/>
+                        <spline idref="spline"/>
+                    </timeVaryingReassortmentRates>
+                    <!--isVariable -->
+
+
+
+
+
+                </distribution>
+
+                <distribution id="parametersPrior" spec="CompoundDistribution">
+                    <distribution spec="Prior" x="@reassortmentRate">
+                        <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" M="0" S="4"/>
+                    </distribution>
+                    <distribution spec="Prior" x="@popSize">
+                        <distr spec="beast.base.inference.distribution.OneOnX"/>
+                    </distribution>
+
+                    <!-- isconstant-->
+                    <distribution spec="Prior">
+                        <x spec="coalre.dynamics.SplineTransmissionDifference" spline="@spline"/>
+                        <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="1"/>
+                    </distribution>
+
+                    <distribution spec="Prior" x="@InfectedToRho">
+                        <distr spec="beast.base.inference.distribution.OneOnX"/>
+                    </distribution>
+                    <!--isconstant -->
+
+
+                    <!-- isinfectedSkyline-->
+                    <distribution spec="Prior">
+                        <x spec="coalre.dynamics.SplineTransmissionDifference" spline="@spline"/>
+                        <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="1"/>
+                    </distribution>
+                    <distribution spec="Prior" x="@InfectedToRho">
+                        <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" M="0" S="4"/>
+                    </distribution>
+
+                    <!--isinfectedSkyline -->
+
+                    <!-- isVariable-->
+                    <distribution spec="Prior">
+                        <x spec="coalre.dynamics.SplineTransmissionDifference" spline="@spline"/>
+                        <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="1"/>
+                    </distribution>
+                    <distribution spec="Prior">
+                        <x spec="mascot.util.Difference" arg="@InfectedToRho"/>
+                        <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="0.5"/>
+                    </distribution>
+                    <!--isVariable -->
+
+
+
+                </distribution>
+            </distribution>
+        </distribution>
+
+
+        <operator id="FixMeanMutationRatesOperator" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="1.0">
+            <parameter idref="mutationRate.s:seg1"/>
+            <parameter idref="mutationRate.s:seg2"/>
+            <parameter idref="mutationRate.s:seg3"/>
+            <parameter idref="mutationRate.s:seg4"/>
+            <parameter idref="mutationRate.s:seg5"/>
+            <parameter idref="mutationRate.s:seg6"/>
+            <parameter idref="mutationRate.s:seg7"/>
+            <parameter idref="mutationRate.s:seg8"/>
+            <weightvector id="weightparameter" spec="parameter.IntegerParameter" dimension="2" estimate="false" lower="0" upper="0">insert_weights</weightvector>
+        </operator>
+        
+        <!-- isconstant-->
+        <operator id="migrationRatesScaler.s" spec="AdaptableOperatorSampler" weight="2.0">
+            <parameter idref="logInfected"/>
+            <operator id="AVMNOperator" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="1.0">
+                <transformations id="AVMNSumTransform.Mascot" spec="operator.kernel.Transform$LogConstrainedSumTransform">
+                    <f idref="freqParameter.s:seg1"/>
+                    <f idref="freqParameter.s:seg2"/>
+                    <f idref="freqParameter.s:seg3"/>
+                    <f idref="freqParameter.s:seg4"/>
+                    <f idref="freqParameter.s:seg5"/>
+                    <f idref="freqParameter.s:seg6"/>
+                    <f idref="freqParameter.s:seg7"/>
+                    <f idref="freqParameter.s:seg8"/>
+                </transformations>
+                <transformations id="AVMNLogTransform.Mascot" spec="operator.kernel.Transform$LogTransform">
+                    <f idref="clockRate.c"/>
+                    <f idref="reassortmentRate"/>
+                    <f idref="gammaShape.s:seg1"/>
+                    <f idref="kappa.s:seg1"/>
+                    <f idref="gammaShape.s:seg2"/>
+                    <f idref="kappa.s:seg2"/>
+                    <f idref="gammaShape.s:seg3"/>
+                    <f idref="kappa.s:seg3"/>
+                    <f idref="gammaShape.s:seg4"/>
+                    <f idref="kappa.s:seg4"/>
+                    <f idref="gammaShape.s:seg5"/>
+                    <f idref="kappa.s:seg5"/>
+                    <f idref="gammaShape.s:seg6"/>
+                    <f idref="kappa.s:seg6"/>
+                    <f idref="gammaShape.s:seg7"/>
+                    <f idref="kappa.s:seg7"/>
+                    <f idref="gammaShape.s:seg8"/>
+                    <f idref="kappa.s:seg8"/>
+                </transformations>
+                <transformations id="AVMNNoTransform.Mascot" spec="operator.kernel.Transform$NoTransform">
+                    <f idref="logInfected"/>
+                </transformations>
+            </operator>
+            <operator id="SkylineNe.camel.ScalerX.t" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@logInfected" scaleFactor="0.5" weight="1.0"/>
+        </operator>
+
+        <operator id="reassortmentRateScaler.s:" spec="AdaptableOperatorSampler" weight="2.0">
+            <parameter idref="reassortmentRate"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="reassortmentRateX.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@reassortmentRate" scaleFactor="0.5" weight="1.0"/>
+        </operator>
+        <!--isconstant -->
+
+        <!-- isinfectedSkyline-->
+        <operator id="migrationRatesScaler.s" spec="AdaptableOperatorSampler" weight="2.0">
+            <parameter idref="logInfected"/>
+            <operator id="AVMNOperator" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="1.0">
+                <transformations id="AVMNSumTransform.Mascot" spec="operator.kernel.Transform$LogConstrainedSumTransform">
+                    <f idref="freqParameter.s:seg1"/>
+                    <f idref="freqParameter.s:seg2"/>
+                    <f idref="freqParameter.s:seg3"/>
+                    <f idref="freqParameter.s:seg4"/>
+                    <f idref="freqParameter.s:seg5"/>
+                    <f idref="freqParameter.s:seg6"/>
+                    <f idref="freqParameter.s:seg7"/>
+                    <f idref="freqParameter.s:seg8"/>
+                </transformations>
+                <transformations id="AVMNLogTransform.Mascot" spec="operator.kernel.Transform$LogTransform">
+                    <f idref="clockRate.c"/>
+                    <f idref="InfectedToRho"/>
+                    <f idref="gammaShape.s:seg1"/>
+                    <f idref="kappa.s:seg1"/>
+                    <f idref="gammaShape.s:seg2"/>
+                    <f idref="kappa.s:seg2"/>
+                    <f idref="gammaShape.s:seg3"/>
+                    <f idref="kappa.s:seg3"/>
+                    <f idref="gammaShape.s:seg4"/>
+                    <f idref="kappa.s:seg4"/>
+                    <f idref="gammaShape.s:seg5"/>
+                    <f idref="kappa.s:seg5"/>
+                    <f idref="gammaShape.s:seg6"/>
+                    <f idref="kappa.s:seg6"/>
+                    <f idref="gammaShape.s:seg7"/>
+                    <f idref="kappa.s:seg7"/>
+                    <f idref="gammaShape.s:seg8"/>
+                    <f idref="kappa.s:seg8"/>
+                </transformations>
+                <transformations id="AVMNNoTransform.Mascot" spec="operator.kernel.Transform$NoTransform">
+                    <f idref="logInfected"/>
+                </transformations>
+            </operator>
+            <operator id="SkylineNe.camel.ScalerX.t" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@logInfected" scaleFactor="0.5" weight="1.0"/>
+        </operator>
+
+        <operator id="InfectedToRhoScaler.s:" spec="AdaptableOperatorSampler" weight="2.0">
+            <parameter idref="InfectedToRho"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="InfectedToRho.ScalerX.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@InfectedToRho" scaleFactor="0.5" weight="1.0"/>
+        </operator>
+        <!--isinfectedSkyline -->
+
+
+        <!-- isVariable-->
+        <operator id="migrationRatesScaler.s" spec="AdaptableOperatorSampler" weight="2.0">
+            <parameter idref="logInfected"/>
+            <operator id="AVMNOperator" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="1.0">
+                <transformations id="AVMNSumTransform.Mascot" spec="operator.kernel.Transform$LogConstrainedSumTransform">
+                    <f idref="freqParameter.s:seg1"/>
+                    <f idref="freqParameter.s:seg2"/>
+                    <f idref="freqParameter.s:seg3"/>
+                    <f idref="freqParameter.s:seg4"/>
+                    <f idref="freqParameter.s:seg5"/>
+                    <f idref="freqParameter.s:seg6"/>
+                    <f idref="freqParameter.s:seg7"/>
+                    <f idref="freqParameter.s:seg8"/>
+                </transformations>  
+                <transformations id="AVMNLogTransform.Mascot" spec="operator.kernel.Transform$LogTransform">
+                    <f idref="clockRate.c"/>
+                    <f idref="InfectedToRho"/>
+                    <f idref="gammaShape.s:seg1"/>
+                    <f idref="kappa.s:seg1"/>
+                    <f idref="gammaShape.s:seg2"/>
+                    <f idref="kappa.s:seg2"/>
+                    <f idref="gammaShape.s:seg3"/>
+                    <f idref="kappa.s:seg3"/>
+                    <f idref="gammaShape.s:seg4"/>
+                    <f idref="kappa.s:seg4"/>
+                    <f idref="gammaShape.s:seg5"/>
+                    <f idref="kappa.s:seg5"/>
+                    <f idref="gammaShape.s:seg6"/>
+                    <f idref="kappa.s:seg6"/>
+                    <f idref="gammaShape.s:seg7"/>
+                    <f idref="kappa.s:seg7"/>
+                    <f idref="gammaShape.s:seg8"/>
+                    <f idref="kappa.s:seg8"/>
+                </transformations>
+                <transformations id="AVMNNoTransform.Mascot" spec="operator.kernel.Transform$NoTransform">
+                    <f idref="logInfected"/>
+                    <f idref="InfectedToRho"/>
+                </transformations>
+            </operator>
+            <operator id="SkylineNe.camel.ScalerX.t" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@logInfected" scaleFactor="0.5" weight="1.0"/>
+        </operator>
+        <operator id="InfectedToRhoScaler.s:" spec="AdaptableOperatorSampler" weight="2.0">
+            <parameter idref="InfectedToRho"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="InfectedToRho.ScalerX.t" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@InfectedToRho" scaleFactor="0.5" weight="1.0"/>
+        </operator>
+        <!--isVariable -->
+
+        <operator id="StrictClockRateScaler.c" spec="AdaptableOperatorSampler" weight="1.5">
+            <parameter idref="clockRate.c"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="StrictClockRateScalerX.c" spec="kernel.BactrianScaleOperator" parameter="@clockRate.c" upper="10.0" weight="3.0"/>
+        </operator>
+
+        <operator id="gammaShapeScaler.s:seg1" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="gammaShape.s:seg1"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="gammaShapeScalerX.s:seg1" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:seg1" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+        </operator>
+        <operator id="FrequenciesExchanger.s:seg1" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="freqParameter.s:seg1"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="FrequenciesExchangerX.s:seg1" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
+                <parameter idref="freqParameter.s:seg1"/>
+            </operator>
+        </operator>
+        <operator id="KappaScaler.s:seg1" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="kappa.s:seg1"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="KappaScalerX.s:seg1" spec="kernel.BactrianScaleOperator" parameter="@kappa.s:seg1" scaleFactor="0.1" upper="10.0" weight="0.1"/>
+        </operator>
+
+        <operator id="gammaShapeScaler.s:seg2" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="gammaShape.s:seg2"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="gammaShapeScalerX.s:seg2" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:seg2" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+        </operator>
+        <operator id="FrequenciesExchanger.s:seg2" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="freqParameter.s:seg2"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="FrequenciesExchangerX.s:seg2" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
+                <parameter idref="freqParameter.s:seg2"/>
+            </operator>
+        </operator>
+        <operator id="KappaScaler.s:seg2" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="kappa.s:seg2"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="KappaScalerX.s:seg2" spec="kernel.BactrianScaleOperator" parameter="@kappa.s:seg2" scaleFactor="0.1" upper="10.0" weight="0.1"/>
+        </operator>
+
+        <operator id="gammaShapeScaler.s:seg3" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="gammaShape.s:seg3"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="gammaShapeScalerX.s:seg3" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:seg3" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+        </operator>
+        <operator id="FrequenciesExchanger.s:seg3" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="freqParameter.s:seg3"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="FrequenciesExchangerX.s:seg3" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
+                <parameter idref="freqParameter.s:seg3"/>
+            </operator>
+        </operator>
+        <operator id="KappaScaler.s:seg3" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="kappa.s:seg3"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="KappaScalerX.s:seg3" spec="kernel.BactrianScaleOperator" parameter="@kappa.s:seg3" scaleFactor="0.1" upper="10.0" weight="0.1"/>
+        </operator>
+
+        <operator id="gammaShapeScaler.s:seg4" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="gammaShape.s:seg4"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="gammaShapeScalerX.s:seg4" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:seg4" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+        </operator>
+        <operator id="FrequenciesExchanger.s:seg4" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="freqParameter.s:seg4"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="FrequenciesExchangerX.s:seg4" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
+                <parameter idref="freqParameter.s:seg4"/>
+            </operator>
+        </operator>
+        <operator id="KappaScaler.s:seg4" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="kappa.s:seg4"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="KappaScalerX.s:seg4" spec="kernel.BactrianScaleOperator" parameter="@kappa.s:seg4" scaleFactor="0.1" upper="10.0" weight="0.1"/>
+        </operator>
+
+        <operator id="gammaShapeScaler.s:seg5" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="gammaShape.s:seg5"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="gammaShapeScalerX.s:seg5" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:seg5" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+        </operator>
+        <operator id="FrequenciesExchanger.s:seg5" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="freqParameter.s:seg5"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="FrequenciesExchangerX.s:seg5" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
+                <parameter idref="freqParameter.s:seg5"/>
+            </operator>
+        </operator>
+        <operator id="KappaScaler.s:seg5" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="kappa.s:seg5"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="KappaScalerX.s:seg5" spec="kernel.BactrianScaleOperator" parameter="@kappa.s:seg5" scaleFactor="0.1" upper="10.0" weight="0.1"/>
+        </operator>
+
+        <operator id="gammaShapeScaler.s:seg6" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="gammaShape.s:seg6"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="gammaShapeScalerX.s:seg6" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:seg6" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+        </operator>
+        <operator id="FrequenciesExchanger.s:seg6" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="freqParameter.s:seg6"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="FrequenciesExchangerX.s:seg6" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
+                <parameter idref="freqParameter.s:seg6"/>
+            </operator>
+        </operator>
+        <operator id="KappaScaler.s:seg6" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="kappa.s:seg6"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="KappaScalerX.s:seg6" spec="kernel.BactrianScaleOperator" parameter="@kappa.s:seg6" scaleFactor="0.1" upper="10.0" weight="0.1"/>
+        </operator>
+
+        <operator id="gammaShapeScaler.s:seg7" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="gammaShape.s:seg7"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="gammaShapeScalerX.s:seg7" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:seg7" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+        </operator>
+        <operator id="FrequenciesExchanger.s:seg7" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="freqParameter.s:seg7"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="FrequenciesExchangerX.s:seg7" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
+                <parameter idref="freqParameter.s:seg7"/>
+            </operator>
+        </operator>
+        <operator id="KappaScaler.s:seg7" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="kappa.s:seg7"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="KappaScalerX.s:seg7" spec="kernel.BactrianScaleOperator" parameter="@kappa.s:seg7" scaleFactor="0.1" upper="10.0" weight="0.1"/>
+        </operator>
+
+        <operator id="gammaShapeScaler.s:seg8" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="gammaShape.s:seg8"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="gammaShapeScalerX.s:seg8" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:seg8" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+        </operator>
+        <operator id="FrequenciesExchanger.s:seg8" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="freqParameter.s:seg8"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="FrequenciesExchangerX.s:seg8" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
+                <parameter idref="freqParameter.s:seg8"/>
+            </operator>
+        </operator>
+        <operator id="KappaScaler.s:seg8" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="kappa.s:seg8"/>
+            <operator idref="AVMNOperator"/>
+            <operator id="KappaScalerX.s:seg8" spec="kernel.BactrianScaleOperator" parameter="@kappa.s:seg8" scaleFactor="0.1" upper="10.0" weight="0.1"/>
+        </operator>
+
+
+        <operator spec="AddRemoveReassortment" network="@network" alpha="1.0" weight="10.0">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+        <operator spec="AddRemoveReassortmentCoalescent" coalescentWithReassortment="@networkPrior" network="@network" weight="100.0">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+
+        <operator spec="DivertSegmentOperator" network="@network" weight="5.0">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+        <operator spec="UniformNetworkNodeHeightOperator" network="@network" weight="15.0">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+        <operator id="NetworkScale" spec="NetworkScaleOperator" network="@network" weight="3.0" scaleFactor="0.8">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+        <operator id="NetworkScale2" spec="NetworkScaleOperator" network="@network" weight="3.0" scaleFactor="0.8">
+            <!-- <upParameter idref="popSize"/> -->
+            <downParameter idref="clockRate.c"/>
+            <!-- <downParameter idref="reassortmentRate"/> -->
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+
+        <operator id="NetworkScaleRootOnly" spec="NetworkScaleOperator" network="@network" scaleRootOnly="true" weight="3.0" scaleFactor="0.8">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+        <operator spec="NetworkExchange" network="@network" isNarrow="false" weight="10.0">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+        <operator spec="NetworkExchange" network="@network" isNarrow="true" weight="10.0">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+        <operator spec="SubNetworkSlide" network="@network" weight="30.0">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+        <!-- <operator id="GibbsOperatorAboveSegmentRoots" spec="GibbsOperatorAboveSegmentRoots" network="@network" weight="3.0">
+          <segmentTree idref="seg1tree"/>
+          <segmentTree idref="seg2tree"/>
+          <segmentTree idref="seg3tree"/>
+          <segmentTree idref="seg4tree"/>
+          <populationModel idref="constantPopulation"/>
+          <reassortmentRate idref="reassortmentRate"/>
+        </operator> -->
+
+        <logger spec="Logger" logEvery="10000" mode="tree" fileName="$(filebase).trees">
+            <log idref="network"/>
+        </logger>
+
+        <logger spec="Logger" logEvery="10000" fileName="$(filebase).log">
+            <log idref="posterior"/>
+            <log idref="likelihood"/>
+            <log spec="NetworkStatsLogger" network="@network"/>
+            <log spec="TreeStatLogger" tree="@seg1tree"/>
+            <log spec="TreeStatLogger" tree="@seg2tree"/>
+            <log spec="TreeStatLogger" tree="@seg3tree"/>
+            <log spec="TreeStatLogger" tree="@seg4tree"/>
+            <log spec="TreeStatLogger" tree="@seg5tree"/>
+            <log spec="TreeStatLogger" tree="@seg6tree"/>
+            <log spec="TreeStatLogger" tree="@seg7tree"/>
+            <log spec="TreeStatLogger" tree="@seg8tree"/>
+            <log idref="reassortmentRate"/>
+            <log idref="popSize"/>
+            <log idref="logInfected"/>
+            <log idref="InfectedToRho"/>
+            <!-- isinfectedSkyline
+            <log idref="splinePop"/>
+            <log idref="reassortmentDynamics"/>
+            sinfectedSkyline -->
+            <!-- isVariable
+            <log idref="splinePop"/>
+            <log idref="reassortmentDynamics"/>
+            <isVariable -->
+            <log idref="clockRate.c"/>
+            <log idref="mutationRate.s:seg1"/>
+            <log idref="gammaShape.s:seg1"/>
+            <log idref="freqParameter.s:seg1"/>
+            <log idref="kappa.s:seg1"/>
+            <log idref="mutationRate.s:seg2"/>
+            <log idref="gammaShape.s:seg2"/>
+            <log idref="freqParameter.s:seg2"/>
+            <log idref="kappa.s:seg2"/>
+            <log idref="mutationRate.s:seg3"/>
+            <log idref="gammaShape.s:seg3"/>
+            <log idref="freqParameter.s:seg3"/>
+            <log idref="kappa.s:seg3"/>
+            <log idref="mutationRate.s:seg4"/>
+            <log idref="gammaShape.s:seg4"/>
+            <log idref="freqParameter.s:seg4"/>
+            <log idref="kappa.s:seg4"/>
+            <log idref="mutationRate.s:seg5"/>
+            <log idref="gammaShape.s:seg5"/>
+            <log idref="freqParameter.s:seg5"/>
+            <log idref="kappa.s:seg5"/>
+            <log idref="mutationRate.s:seg6"/>
+            <log idref="gammaShape.s:seg6"/>
+            <log idref="freqParameter.s:seg6"/>
+            <log idref="kappa.s:seg6"/>
+            <log idref="mutationRate.s:seg7"/>
+            <log idref="gammaShape.s:seg7"/>
+            <log idref="freqParameter.s:seg7"/>
+            <log idref="kappa.s:seg7"/>
+            <log idref="mutationRate.s:seg8"/>
+            <log idref="gammaShape.s:seg8"/>
+            <log idref="freqParameter.s:seg8"/>
+            <log idref="kappa.s:seg8"/>
+            <log idref="splinePop"/>
+        </logger>
+        
+        <logger spec="Logger" logEvery="10000">
+            <log idref="posterior"/>
+            <log idref="likelihood"/>
+            <log spec="beast.base.inference.util.ESS" arg="@posterior"/>
+        </logger>
+
+    </run>
+</beast>
