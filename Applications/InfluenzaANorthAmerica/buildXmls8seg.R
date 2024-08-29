@@ -89,7 +89,7 @@ for (a in 1:length(virus)) {
     
     # save plot p to samplingFigs/
     ggsave(plot=p, filename=paste("./samplingFigs/", base, "_sampling.pdf", sep=""), width=6, height=5)
-
+    
     
     
     # read in the log file to get the network height
@@ -97,10 +97,10 @@ for (a in 1:length(virus)) {
     # build an inference xml files
     f <- file(sprintf('xmls/%s.xml',filename), 'w')
     # Open the template file
-    template <- file('../H5N1NorthAmerica/inference_template_7seg.xml', 'r')
+    template <- file('../H5N1NorthAmerica/inference_template_wgs.xml', 'r')
     
     
-  
+    
     while (length(line <- readLines(template, n = 1)) > 0) {
       if (grepl('insert_name', line)) {
         writeLines(gsub('insert_name', sprintf('%s', filename), line), f)
@@ -115,7 +115,7 @@ for (a in 1:length(virus)) {
         } else {
           writeLines(gsub('insert_clock_rate', '0.003', line), f)
         }
-
+        
       }else if (grepl('insert_seg1', line)){
         writeLines(gsub('insert_seg1', paste(base, "HA", sep="_"), line), f)
       }else if (grepl('insert_seg2', line)){
@@ -129,13 +129,15 @@ for (a in 1:length(virus)) {
       }else if (grepl('insert_seg6', line)){
         writeLines(gsub('insert_seg6', paste(base, "PB1", sep="_"), line), f)
       }else if (grepl('insert_seg7', line)){
-        writeLines(gsub('insert_seg7', paste(base, "PA", sep="_"), line), f)
+        writeLines(gsub('insert_seg7', paste(base, "PB2", sep="_"), line), f)
+      }else if (grepl('insert_seg8', line)){
+        writeLines(gsub('insert_seg8', paste(base, "PA", sep="_"), line), f)
       } else if (grepl('insert_times', line)) {
         writeLines(gsub('insert_times', paste(rateshiftvals, collapse=' '), line), f)
       } else if (grepl('insert_ratetimes', line)) {
         writeLines(gsub('insert_ratetimes', paste(rateshiftvals2, collapse=' '), line), f)
         
-      # mask all the non isConstant entries, i.e. isinfectedSkyline
+        # mask all the non isConstant entries, i.e. isinfectedSkyline
       } else if (grepl('isinfectedSkyline-->', line)) {
         writeLines(gsub('isinfectedSkyline-->', '', line), f)
       } else if (grepl('<!--isinfectedSkyline', line)){
@@ -185,7 +187,8 @@ for (a in 1:length(virus)) {
         seq4 = seqinr::read.fasta(file = paste("./xmls/", base, "_NS.fasta", sep=""), seqtype = "DNA")
         seq5 = seqinr::read.fasta(file = paste("./xmls/", base, "_NP.fasta", sep=""), seqtype = "DNA")
         seq6 = seqinr::read.fasta(file = paste("./xmls/", base, "_PB1.fasta", sep=""), seqtype = "DNA")
-        seq7 = seqinr::read.fasta(file = paste("./xmls/", base, "_PA.fasta", sep=""), seqtype = "DNA")
+        seq7 = seqinr::read.fasta(file = paste("./xmls/", base, "_PB2.fasta", sep=""), seqtype = "DNA")
+        seq8 = seqinr::read.fasta(file = paste("./xmls/", base, "_PA.fasta", sep=""), seqtype = "DNA")
         
         #get the number of characters in the first segment
         sequence_length_seg1 <- nchar(getSequence(seq1[[1]], as.string = TRUE))
@@ -195,22 +198,23 @@ for (a in 1:length(virus)) {
         sequence_length_seg5 <- nchar(getSequence(seq5[[1]], as.string = TRUE))
         sequence_length_seg6 <- nchar(getSequence(seq6[[1]], as.string = TRUE))
         sequence_length_seg7 <- nchar(getSequence(seq7[[1]], as.string = TRUE))
+        sequence_length_seg8 <- nchar(getSequence(seq8[[1]], as.string = TRUE))
         writeLines(gsub('insert_weights', paste(sequence_length_seg1, sequence_length_seg2,
                                                 sequence_length_seg3, sequence_length_seg4,
                                                 sequence_length_seg5, sequence_length_seg6,
-                                                sequence_length_seg7), line), f)
+                                                sequence_length_seg7, sequence_length_seg8), line), f)
       } else {
         writeLines(line, f)
       }
     }
     close(f)
     close(template)
-
+    
     # make a second xml where the .trees is replaced by .infected
     filename = paste(virus[[a]], "_", year[[b]] , ".variable", sep="")
     f <- file(sprintf('xmls/%s.xml', filename), 'w')
     # Open the template file
-    template <- file('../H5N1NorthAmerica/inference_template_7seg.xml', 'r')
+    template <- file('../H5N1NorthAmerica/inference_template_wgs.xml', 'r')
     while (length(line <- readLines(template, n = 1)) > 0) {
       if (grepl('insert_name', line)) {
         writeLines(gsub('insert_name', sprintf('%s', filename), line), f)
@@ -225,7 +229,7 @@ for (a in 1:length(virus)) {
         } else {
           writeLines(gsub('insert_clock_rate', '0.003', line), f)
         }
-
+        
       }else if (grepl('insert_seg1', line)){
         writeLines(gsub('insert_seg1', paste(base, "HA", sep="_"), line), f)
       }else if (grepl('insert_seg2', line)){
@@ -239,15 +243,17 @@ for (a in 1:length(virus)) {
       }else if (grepl('insert_seg6', line)){
         writeLines(gsub('insert_seg6', paste(base, "PB1", sep="_"), line), f)
       }else if (grepl('insert_seg7', line)){
-        writeLines(gsub('insert_seg7', paste(base, "PA", sep="_"), line), f)
+        writeLines(gsub('insert_seg7', paste(base, "PB2", sep="_"), line), f)
+      }else if (grepl('insert_seg8', line)){
+        writeLines(gsub('insert_seg8', paste(base, "PA", sep="_"), line), f)
       } else if (grepl('insert_times', line)) {
         writeLines(gsub('insert_times', paste(rateshiftvals, collapse=' '), line), f)
-
+        
       }else if (grepl('insert_EOS', line)){
         # get the most recent sampling time
         writeLines(gsub('insert_EOS', paste(rateshiftvals2[2:length(rateshiftvals2)], collapse = " "), line), f)
         
-      # mask all the non isConstant entries, i.e. isinfectedSkyline
+        # mask all the non isConstant entries, i.e. isinfectedSkyline
       } else if (grepl('isconstant-->', line)) {
         writeLines(gsub('isconstant-->', '', line), f)
       } else if (grepl('<!--isconstant', line)){
@@ -256,24 +262,22 @@ for (a in 1:length(virus)) {
         writeLines(gsub('isNeSkyline-->', '', line), f)
       } else if (grepl('<!--isNeSkyline', line)){
         writeLines(gsub('<!--isNeSkyline', '', line), f)
-
+        
       } else if (grepl('isISkyline-->', line)) {
         writeLines(gsub('isISkyline-->', '', line), f)
       } else if (grepl('<!--isISkyline', line)){
         writeLines(gsub('<!--isISkyline', '', line), f)
-
+        
       } else if (grepl('isinfectedSkyline-->', line)) {
         writeLines(gsub('isinfectedSkyline-->', '', line), f)
       } else if (grepl('<!--isinfectedSkyline', line)){
         writeLines(gsub('<!--isinfectedSkyline', '', line), f)
-
-
       } else if (grepl('insert_heights', line)) {
         # write the height of each tip using heights seperated by a = and , between
         value=''
         for (i in seq(1, length(isolates))) {
           date = strsplit(isolates[i], "\\|")[[1]][[3]]
-
+          
           if (i == length(isolates)) {
             value = paste(value, isolates[i], '=', date, sep = '')
           } else {
@@ -284,15 +288,15 @@ for (a in 1:length(virus)) {
         writeLines(gsub('insert_heights', value, line), f)
       }else if (grepl('insert_weights', line)) {
         # get the length of both alignments
-        # get the length of both alignments
         seq1 = seqinr::read.fasta(file = paste("./xmls/", base, "_HA.fasta", sep=""), seqtype = "DNA")
         seq2 = seqinr::read.fasta(file = paste("./xmls/", base, "_NA.fasta", sep=""), seqtype = "DNA")
         seq3 = seqinr::read.fasta(file = paste("./xmls/", base, "_MP.fasta", sep=""), seqtype = "DNA")
         seq4 = seqinr::read.fasta(file = paste("./xmls/", base, "_NS.fasta", sep=""), seqtype = "DNA")
         seq5 = seqinr::read.fasta(file = paste("./xmls/", base, "_NP.fasta", sep=""), seqtype = "DNA")
         seq6 = seqinr::read.fasta(file = paste("./xmls/", base, "_PB1.fasta", sep=""), seqtype = "DNA")
-        seq7 = seqinr::read.fasta(file = paste("./xmls/", base, "_PA.fasta", sep=""), seqtype = "DNA")
-
+        seq7 = seqinr::read.fasta(file = paste("./xmls/", base, "_PB2.fasta", sep=""), seqtype = "DNA")
+        seq8 = seqinr::read.fasta(file = paste("./xmls/", base, "_PA.fasta", sep=""), seqtype = "DNA")
+        
         #get the number of characters in the first segment
         sequence_length_seg1 <- nchar(getSequence(seq1[[1]], as.string = TRUE))
         sequence_length_seg2 <- nchar(getSequence(seq2[[1]], as.string = TRUE))
@@ -301,10 +305,12 @@ for (a in 1:length(virus)) {
         sequence_length_seg5 <- nchar(getSequence(seq5[[1]], as.string = TRUE))
         sequence_length_seg6 <- nchar(getSequence(seq6[[1]], as.string = TRUE))
         sequence_length_seg7 <- nchar(getSequence(seq7[[1]], as.string = TRUE))
+        sequence_length_seg8 <- nchar(getSequence(seq8[[1]], as.string = TRUE))
         writeLines(gsub('insert_weights', paste(sequence_length_seg1, sequence_length_seg2,
                                                 sequence_length_seg3, sequence_length_seg4,
                                                 sequence_length_seg5, sequence_length_seg6,
-                                                sequence_length_seg7), line), f)      } else {
+                                                sequence_length_seg7, sequence_length_seg8), line), f)
+      } else {
         writeLines(line, f)
       }
     }
@@ -314,12 +320,12 @@ for (a in 1:length(virus)) {
     
     # skip this file
     next
-
+    
     # make a second xml where the .trees is replaced by .infected
     filename = paste(virus[[a]], "_", year[[b]] , ".ne", sep="")
     f <- file(sprintf('xmls/%s.xml', filename), 'w')
     # Open the template file
-    template <- file('../H5N1NorthAmerica/inference_template_7seg.xml', 'r')
+    template <- file('../H5N1NorthAmerica/inference_template.xml', 'r')
     while (length(line <- readLines(template, n = 1)) > 0) {
       if (grepl('insert_name', line)) {
         writeLines(gsub('insert_name', sprintf('%s', filename), line), f)
@@ -348,8 +354,10 @@ for (a in 1:length(virus)) {
       }else if (grepl('insert_seg6', line)){
         writeLines(gsub('insert_seg6', paste(base, "PB1", sep="_"), line), f)
       }else if (grepl('insert_seg7', line)){
-        writeLines(gsub('insert_seg7', paste(base, "PA", sep="_"), line), f)
-      } else if (grepl('insert_times', line)) {
+        writeLines(gsub('insert_seg7', paste(base, "PB2", sep="_"), line), f)
+      }else if (grepl('insert_seg8', line)){
+        writeLines(gsub('insert_seg8', paste(base, "PA", sep="_"), line), f)
+      }else if (grepl('insert_times', line)) {
         writeLines(gsub('insert_times', paste(rateshiftvals, collapse=' '), line), f)
         
       } else if (grepl('insert_ratetimes', line)) {
@@ -403,7 +411,8 @@ for (a in 1:length(virus)) {
         seq4 = seqinr::read.fasta(file = paste("./xmls/", base, "_NS.fasta", sep=""), seqtype = "DNA")
         seq5 = seqinr::read.fasta(file = paste("./xmls/", base, "_NP.fasta", sep=""), seqtype = "DNA")
         seq6 = seqinr::read.fasta(file = paste("./xmls/", base, "_PB1.fasta", sep=""), seqtype = "DNA")
-        seq7 = seqinr::read.fasta(file = paste("./xmls/", base, "_PA.fasta", sep=""), seqtype = "DNA")
+        seq7 = seqinr::read.fasta(file = paste("./xmls/", base, "_PB2.fasta", sep=""), seqtype = "DNA")
+        seq8 = seqinr::read.fasta(file = paste("./xmls/", base, "_PA.fasta", sep=""), seqtype = "DNA")
         
         #get the number of characters in the first segment
         sequence_length_seg1 <- nchar(getSequence(seq1[[1]], as.string = TRUE))
@@ -413,10 +422,12 @@ for (a in 1:length(virus)) {
         sequence_length_seg5 <- nchar(getSequence(seq5[[1]], as.string = TRUE))
         sequence_length_seg6 <- nchar(getSequence(seq6[[1]], as.string = TRUE))
         sequence_length_seg7 <- nchar(getSequence(seq7[[1]], as.string = TRUE))
+        sequence_length_seg8 <- nchar(getSequence(seq8[[1]], as.string = TRUE))
         writeLines(gsub('insert_weights', paste(sequence_length_seg1, sequence_length_seg2,
                                                 sequence_length_seg3, sequence_length_seg4,
                                                 sequence_length_seg5, sequence_length_seg6,
-                                                sequence_length_seg7), line), f)      } else {
+                                                sequence_length_seg7, sequence_length_seg8), line), f)
+      } else {
         writeLines(line, f)
       }
     }

@@ -181,21 +181,21 @@ tree.files <- list.files("./out/", pattern="*.trees", full.names=TRUE)
 maxTipDistance = 12/12
 for (i in seq(1, length(tree.files))) {
   print(tree.files[i])
-  system(intern=T, show.output.on.console=F,ignore.stdout = T, ignore.stderr = T,
-         paste("/Applications/BEAST\\ 2.7.6/bin/applauncher ExtractReassortmentEvents",
-                         "-burnin 60 ", tree.files[i],
-                         gsub(".trees", ".events.reassortment", tree.files[i])))
+  # system(intern=T, show.output.on.console=F,ignore.stdout = T, ignore.stderr = T,
+  #        paste("/Applications/BEAST\\ 2.7.6/bin/applauncher ExtractReassortmentEvents",
+  #                        "-burnin 60 ", tree.files[i],
+  #                        gsub(".trees", ".events.reassortment", tree.files[i])))
   
   # summarize the networks
   # system(intern=T, show.output.on.console=F,ignore.stdout = T, ignore.stderr = T,
   #        paste("/Applications/BEAST\\ 2.7.6/bin/applauncher ReassortmentNetworkSummarizer",
   #                        "-burnin 20", tree.files[i],
   #                        gsub(".trees", ".tree", tree.files[i])))
-  # 
-  system(intern=T, show.output.on.console=F,ignore.stdout = T, ignore.stderr = T,
-         paste("/Applications/BEAST\\ 2.7.6/bin/applauncher ExtantReassortmentRate",
-                         "-burnin 60 -maxTipDistance", maxTipDistance, tree.files[i],
-                         gsub(".trees", ".tip.reassortment", tree.files[i])))
+
+  # system(intern=T, show.output.on.console=F,ignore.stdout = T, ignore.stderr = T,
+  #        paste("/Applications/BEAST\\ 2.7.6/bin/applauncher ExtantReassortmentRate",
+  #                        "-burnin 60 -maxTipDistance", maxTipDistance, tree.files[i],
+  #                        gsub(".trees", ".tip.reassortment", tree.files[i])))
   # for (a in seq(0,7)){
   #   system(intern=T, show.output.on.console=F,ignore.stdout = T, ignore.stderr = T, paste("/Applications/BEAST\\ 2.7.6/bin/applauncher TipDistanceReassortmentRate -removeSegments",a,
   #                          "-burnin 60 -maxTipDistance", maxTipDistance, tree.files[i],
@@ -269,8 +269,8 @@ subset_rem = adjusted_reassortment
 subset_rem$season = paste(as.numeric(format(subset_rem$date, "%y"))-1, "/", format(subset_rem$date, "%y"), sep = "")
 
 # remove H1N1 season 2010/11
-subset_rem = subset_rem[!(subset_rem$season == "21/22"),]
-subset_rem = subset_rem[!(subset_rem$season == "22/23"),]
+# subset_rem = subset_rem[!(subset_rem$season == "21/22"),]
+# subset_rem = subset_rem[!(subset_rem$season == "22/23"),]
 
 # calculate the correlation between the cumulative cases and the reassortment rate
 # for each method and save it

@@ -23,23 +23,21 @@ est.data = data.frame()
 # data frame to save the reassortment events
 reassortment.data = data.frame()
 
-# set the time points for the parameters
-time_points = seq(0,12,1.5)
-# get 500 points between 0 and 16
-time_points2 = seq(0,12, length.out=500)
+
 
 # read in the file SIR_simulations.txt that contains the simulated values
 simulated = read.table("SIR_simulations.txt", header=TRUE, sep="\t")
 
 # get all .log files in /out
 logfiles <- list.files("./out", pattern="*.log", full.names=TRUE)
+
 # loop over all files
 for (i in seq(1, length(logfiles))){
 # for (i in seq(1, 30)){
   # try to open logfiles[[i]] as t = read.table(logfiles[i], header=TRUE, sep="\t"), otherwise skip it
   t = try(read.table(logfiles[i], header=TRUE, sep="\t"))
   # if t is not a data.frame, skip the file
-  if (!is.data.frame(t)){
+  if (!is.data.frame(t) || length(t$Sample) <10){
     next
   }
 
@@ -55,13 +53,25 @@ for (i in seq(1, length(logfiles))){
     print(logfiles[i])
     next
   }
+  
+  # read in the corresponding xml by replacing .log with .xml and the folder with xmls
+  xmlfile = gsub("out", "xmls", gsub(".log", ".xml", logfiles[i]))
+  # read in the xml file
+  xml = readLines(xmlfile)
+  # look for the line with id="rateShifts"
+  rateShifts = xml[grep("id=\"rateShifts\"", xml)]
+  
+  # split the line on " and get the second group
+  rateShifts = as.numeric(strsplit(strsplit(rateShifts, "\"")[[1]][6], split=" ")[[1]])
+  time_points2 = seq(0,max(rateShifts), length.out=500)
+
   # split on . and get the second group as the method used
   method = strsplit(logfiles[i], "\\.")[[1]][3]
   print(method)
   # split on . and _ simultanously and get the third group as the runnumber
   run = as.numeric(strsplit(logfiles[i], "\\.|_")[[1]][4])
   # if the method is not constant
-  if (!grepl("constant", method)){
+  if (grepl("ne", method)){
     # initialize the prevalence vector
     prevalence = c()
     prevalencel = c()
@@ -88,6 +98,37 @@ for (i in seq(1, length(logfiles))){
     # add the data to a data frame
     est.data = rbind(est.data, data.frame(method=method, run=run, time=time, 
             prevalence=prevalence, prevalencel=prevalencel, prevalenceu=prevalenceu)) 
+  }  else if (grepl("infected", method)){
+    # initialize the prevalence vector
+    prevalence = c()
+    prevalencel = c()
+    prevalenceu = c()
+    time = c()
+    # loop over all the labels in t that start with reassortment%d, where %d is a number in time_points2
+    for (j in seq(1, length(rateShifts))){
+      # get the prevalence at the time point, if the label exists
+      if (paste0("InfectedToRho.", j) %in% colnames(t)){
+        prevalence = c(prevalence, median(t[,paste0("InfectedToRho.", j)]))
+        prevalence = c(prevalence, median(t[,paste0("InfectedToRho.", j)]))
+        # get the 2.5 and 97.5 quantile
+        prevalencel = c(prevalencel, quantile(t[,paste0("InfectedToRho.", j)], 0.025))
+        prevalenceu = c(prevalenceu, quantile(t[,paste0("InfectedToRho.", j)], 0.975))
+        prevalencel = c(prevalencel, quantile(t[,paste0("InfectedToRho.", j)], 0.025))
+        prevalenceu = c(prevalenceu, quantile(t[,paste0("InfectedToRho.", j)], 0.975))
+        # time
+        time = c(time, rateShifts[j]+0.00001)
+        time = c(time, rateShifts[j+1])
+      }    
+    }
+    # get the value in simulated in the run row and "transmission" column
+    transmision0 = simulated[run, "transmission"]
+    # devide prevalence by transmission0
+    prevalence = exp(prevalence)/transmision0
+    prevalencel = exp(prevalencel)/transmision0
+    prevalenceu = exp(prevalenceu)/transmision0
+    # add the data to a data frame
+    est.data = rbind(est.data, data.frame(method=method, run=run, time=time, 
+                                          prevalence=prevalence, prevalencel=prevalencel, prevalenceu=prevalenceu)) 
   }else{
     # if the method is constant
     # get the value in simulated in the run row and "transmission" column
@@ -118,16 +159,24 @@ est.data$mrsi = NA
 reassortment.data$true = NA
 print("read in SIR files")
 
+
 # get the true values for the prevalence by readin in the files in /master
 true.data = data.frame()
 # get all .log files in .master
 logfiles <- list.files("./master", pattern="*.log", full.names=TRUE)
+
 # loop over all files
 for (i in seq(1, length(logfiles))){
 # for (i in seq(1, 10)){
-    
+  #
   # split on . and _ simultanously and get the third group as the runnumber
   run = as.numeric(strsplit(logfiles[i], "\\.|_")[[1]][4])
+  # if run is not part of unique(reassortment.data$run) skip
+  if (!(run %in% unique(reassortment.data$run))){
+    next
+  }
+  
+  
   # read in the file line by line
   lines = readLines(logfiles[i])
   data = strsplit(lines[[2]], split="\t")[[1]]
@@ -223,22 +272,22 @@ for (i in seq(1, length(logfiles))){
 
 # ggplot(lineages_frame, aes(x=start, xend=end, y=lineages, yend=lineages))+geom_segment()
 dynamic_est_data = est.data[est.data$method!="constant", ]
-dynamic_est_data = dynamic_est_data[dynamic_est_data$method!="infected", ]
-
+# dynamic_est_data = dynamic_est_data[dynamic_est_data$method!="infected", ]
+# dynamic_est_data = est.data
 # get all values of run in true.data$run
-uni.run = unique(true.data$run)
+uni.run = unique(dynamic_est_data$run)
 # for each value in uni.run, check if two methods are present, otherwise remove the value from uni.run
 use.runs = c()
 for (i in uni.run){
-  if (length(unique(dynamic_est_data[dynamic_est_data$run==i,]$method)==1)){
+  if (length(unique(dynamic_est_data[dynamic_est_data$run==i,]$method))==2){
     use.runs = c(use.runs, i)
   }
 }
 
 set.seed(15234)
 # pick 12 random runs
-use.runs.1 = sample(use.runs[use.runs<=50], 3)
-use.runs.2 = sample(use.runs[use.runs>50], 3)
+use.runs.1 = sample(use.runs[use.runs<=50], 9)
+use.runs.2 = sample(use.runs[use.runs>50], 9)
 
 
 # plot the results
@@ -246,17 +295,17 @@ p = ggplot(true.data[true.data$run %in% use.runs.1,], aes(x=time, y=prevalence/p
       geom_line() +
       geom_ribbon(data=dynamic_est_data[dynamic_est_data$run %in% use.runs.1,], aes(x=mrsi-time, ymin=prevalencel, ymax=prevalenceu, fill=method), alpha=0.25) +
       geom_line(data=dynamic_est_data[dynamic_est_data$run %in% use.runs.1,], aes(x=mrsi-time, y=prevalence, color=method)) +
-      facet_wrap(~run, ncol=3) +
+      facet_wrap(~run, ncol=3, scales='free_x') +
       theme_minimal() +
       coord_cartesian(ylim=c(0,0.5)) +
       scale_color_manual(values=c("#0072B2", "#D55E00"))+
       scale_fill_manual(values=c("#0072B2", "#D55E00")) +
-      theme(strip.text=element_blank()) +
+      # theme(strip.text=element_blank()) +
       xlab("Time") +
       ylab("Prevalence")
 plot(p)
 # save the results
-ggsave("./../../Figures/Sir.pdf", p, width = 6, height = 3)
+ggsave("./../../Figures/Sir.pdf", p, width = 9, height = 6)
 
 p = ggplot(true.data[true.data$run %in% use.runs.2,], aes(x=time, y=prevalence/popSize))+
   geom_line() +
@@ -267,12 +316,12 @@ p = ggplot(true.data[true.data$run %in% use.runs.2,], aes(x=time, y=prevalence/p
   coord_cartesian(ylim=c(0,0.5)) +
   scale_color_manual(values=c("#0072B2", "#D55E00"))+
   scale_fill_manual(values=c("#0072B2", "#D55E00")) +
-  theme(strip.text=element_blank()) +
+  # theme(strip.text=element_blank()) +
   xlab("Time") +
   ylab("Prevalence")
 plot(p)
 # save the results
-ggsave("./../../Figures/Sir_superspreading.pdf", p, width = 6, height = 3)
+ggsave("./../../Figures/Sir_superspreading.pdf", p, width = 9, height = 6)
 
 
 # plot the constant results by first making a dataframe with the constant results form true.data and est.data by matching the run
@@ -310,9 +359,6 @@ plot(p)
 ggsave("./../../Figures/Sir_constant.pdf", p, width = 6, height = 3)
 
 
-
-
-
 # plot the reassortment events inferred for each run and method
 # sorted by the true number of reassortment events, also plot those
 # true values, use one x axis slot for each run
@@ -323,3 +369,15 @@ p = ggplot(reassortment.data[order(reassortment.data$true),], aes(x=true, y=even
       theme_minimal() +
       facet_wrap(method~., ncol=1)
 plot(p)
+ggsave("./../../Figures/Sir_constant_events.pdf", p, width = 6, height = 6)
+
+
+p = ggplot(reassortment.data, aes(x=events-true))+
+  geom_vline(xintercept=0,linetype="dashed") +
+  geom_histogram(alpha=0.9, binwidth = 5) +
+  theme_minimal() +
+  facet_wrap(method~., ncol=1) +
+  xlab("estimated - true number of reassortment events")
+plot(p)
+ggsave("./../../Figures/Sir_constant_events_distr.pdf", p, width = 6, height = 6)
+

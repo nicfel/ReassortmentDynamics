@@ -149,7 +149,8 @@ for (tree_file in trees) {
   } 
   
   heights = abs(heights-max(heights))
-
+  rateshifts = seq(0,max(dists),length.out = 20)
+  
   # close all connections
   closeAllConnections()
   
@@ -177,6 +178,10 @@ for (tree_file in trees) {
       for (i in seq(1, length(tree$tip.label))) {
         writeLines(sprintf('<taxon spec="Taxon" id="%s"/>', tree$tip.label[i]), f)
       }  
+    }else if (grepl('insert_rateShifts', line)){
+      writeLines(gsub('insert_rateShifts', paste(rateshifts, collapse = ' '), line), f)
+      # mask all the non isConstant entries, i.e. isinfectedSkyline
+      
     } else if (grepl('insert_times', line)) {
       writeLines(gsub('insert_times', paste(seq(0,timediff*1.1, length.out=15), collapse=' '), line), f)
 
@@ -231,6 +236,10 @@ for (tree_file in trees) {
       for (i in seq(1, length(tree$tip.label))) {
         writeLines(sprintf('<taxon spec="Taxon" id="%s"/>', tree$tip.label[i]), f)
       }
+    }else if (grepl('insert_rateShifts', line)){
+      writeLines(gsub('insert_rateShifts', paste(rateshifts, collapse = ' '), line), f)
+      # mask all the non isConstant entries, i.e. isinfectedSkyline
+      
     } else if (grepl('insert_times', line)) {
       writeLines(gsub('insert_times', paste(seq(0,timediff*1.1, length.out=15), collapse=' '), line), f)
 
@@ -244,15 +253,15 @@ for (tree_file in trees) {
     } else if (grepl('<!--isNeSkyline', line)){
       writeLines(gsub('<!--isNeSkyline', '', line), f)
       
-    } else if (grepl('isISkyline-->', line)) {
-      writeLines(gsub('isISkyline-->', '', line), f)
-    } else if (grepl('<!--isISkyline', line)){
-      writeLines(gsub('<!--isISkyline', '', line), f)
+    # } else if (grepl('isISkyline-->', line)) {
+    #   writeLines(gsub('isISkyline-->', '', line), f)
+    # } else if (grepl('<!--isISkyline', line)){
+    #   writeLines(gsub('<!--isISkyline', '', line), f)
       
-    } else if (grepl('isinfectedSkyline-->', line)) {
-      writeLines(gsub('isinfectedSkyline-->', '', line), f)
-    } else if (grepl('<!--isinfectedSkyline', line)){
-      writeLines(gsub('<!--isinfectedSkyline', '', line), f)
+    # } else if (grepl('isinfectedSkyline-->', line)) {
+    #   writeLines(gsub('isinfectedSkyline-->', '', line), f)
+    # } else if (grepl('<!--isinfectedSkyline', line)){
+    #   writeLines(gsub('<!--isinfectedSkyline', '', line), f)
       
       
     } else if (grepl('insert_heights', line)) {
@@ -288,6 +297,10 @@ for (tree_file in trees) {
       for (i in seq(1, length(tree$tip.label))) {
         writeLines(sprintf('<taxon spec="Taxon" id="%s"/>', tree$tip.label[i]), f)
       }   
+    }else if (grepl('insert_rateShifts', line)){
+      writeLines(gsub('insert_rateShifts', paste(rateshifts, collapse = ' '), line), f)
+      # mask all the non isConstant entries, i.e. isinfectedSkyline
+      
     } else if (grepl('insert_times', line)) {
       writeLines(gsub('insert_times', paste(seq(0,timediff*1.1, length.out=15), collapse=' '), line), f)
       # mask all the non isConstant entries, i.e. isinfectedSkyline

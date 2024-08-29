@@ -1,4 +1,4 @@
-% get the individual alignments for the HA and NA segments from the gisaid
+  % get the individual alignments for the HA and NA segments from the gisaid
 % data
 clear
 rng(1);
@@ -13,7 +13,7 @@ Viruses = {'H3N2', 'H1N1'};
 reference = {'A/Alaska/232/2015', 'A/Arizona/33/2017'};
 
 %define the max samples
-target_sample_number = 600;
+target_sample_number = 1000;
 
 %% initialize data structure to store the alignments
 Alignment = cell(size(c));
@@ -305,6 +305,18 @@ if ~exist('data/H3N2_2016_HA.fasta')
                 [~, idx] = unique(names_part1(isolates));
                 isolates = isolates(idx);
             end
+            keep_isolates = zeros(0,0);
+            % only take at most one sample per day per state
+            for state_iso = unique([isolation_location{isolates}])
+                state_idx = find(strcmp([isolation_location{isolates}], state_iso));
+                if ~isempty(state_idx)
+                    % keep one isolate per day
+                    [~, idx] = unique(HA_isolation_times(isolates(state_idx)));
+                    keep_isolates = [keep_isolates, isolates(state_idx(idx))];
+                end
+            end
+            isolates = keep_isolates;
+
             % get all the indices for cases between first and last isolation time
             cases_idx = find([cases.date] >= first_isolation_time & [cases.date] < last_isolation_time);
             % get the number of sequences for each state in isolates
@@ -527,7 +539,7 @@ for v = 1:length(Viruses)
     end
 end
 
-useTreeTimeOutliers = true;
+useTreeTimeOutliers = false;
 
 if useTreeTimeOutliers
     for v = 1:length(Viruses)
@@ -651,10 +663,6 @@ else
             % save to file
             saveas(gcf, ['timetree/outliers' Viruses{v} '_' num2str(y) '_outliers.png']);
             close(gcf);
-
-            if y==2022
-                dsf
-            end
                 
         end
     end 
@@ -702,14 +710,14 @@ for v = 1:length(Viruses)
                     end
                 end
                 
-                % if s==1
-                %     use_headers = {Sequences(randsample(length(Sequences), min(length(Sequences),400))).Header};
-                % end
-                % for i = length(Sequences):-1:1
-                %     if ~any(strcmp(Sequences(i).Header, use_headers))
-                %         Sequences(i) = [];
-                %     end
-                % end
+                if s==1
+                    use_headers = {Sequences(randsample(length(Sequences), min(length(Sequences),700))).Header};
+                end
+                for i = length(Sequences):-1:1
+                    if ~any(strcmp(Sequences(i).Header, use_headers))
+                        Sequences(i) = [];
+                    end
+                end
                 % 
                 % % get the genomic distance of every sequence to the first sampled sequence, then plot it vs. time sampling time
                 % % get the sampling times

@@ -175,10 +175,14 @@ for (a in 1:length(virus)) {
         writeLines(gsub('insert_heights', value, line), f)   
       }else if (grepl('insert_EOS', line)){
         # get the most recent sampling time
-        EOS = max(as.numeric(strsplit(isolates[length(isolates)], "\\|")[[1]][[3]]))
-        # get the peak of that season
-        EOS = max(dates) - as.numeric(start_time)
-        writeLines(gsub('insert_EOS', EOS/365, line), f)
+        # EOS = max(as.numeric(strsplit(isolates[length(isolates)], "\\|")[[1]][[3]]))
+        # # get the peak of that season
+        # EOS = max(dates) - as.numeric(start_time)
+        # writeLines(gsub('insert_EOS', EOS/365, line), f)
+        
+        pretime = c(seq(0.1, 0.6, length.out=6), 0.8, 1, 1.5)
+        writeLines(gsub('insert_EOS', paste(pretime, collapse = " "), line), f)
+        
       }else if (grepl('insert_weights', line)) {
         # get the length of both alignments
         seq1 = seqinr::read.fasta(file = paste("./xmls/", base, "_HA.fasta", sep=""), seqtype = "DNA")

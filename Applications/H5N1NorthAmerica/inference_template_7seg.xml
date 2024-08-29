@@ -53,7 +53,7 @@
             <stateNode id="seg7tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
 
             <stateNode id="sigma" spec="RealParameter" value="1"/>
-            <stateNode id="sigma2" spec="RealParameter" value="1"/>
+            <stateNode id="sigma2" spec="RealParameter" value="5"/>
             <stateNode id="popSize" spec="RealParameter" value="1.0293"/>
             <stateNode id="reassortmentRate" spec="RealParameter" value="0.1211"/>
 
@@ -266,9 +266,6 @@
                 </distribution>
 
                 <distribution id="parametersPrior" spec="CompoundDistribution">
-                    <distribution spec="Prior" x="@reassortmentRate">
-                        <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" meanInRealSpace="true" M="0.1" S="2"/>
-                    </distribution>
                     <distribution spec="Prior" x="@popSize">
                         <distr spec="beast.base.inference.distribution.OneOnX"/>
                     </distribution>
@@ -278,6 +275,20 @@
                         <x spec="mascot.util.Difference" arg="@logInfected"/>
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma"/>
                     </distribution>
+                    <distribution spec="Prior">
+                        <x spec="mascot.util.Difference" arg="@reassortmentRate"/>
+                        <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma2"/>
+                    </distribution>
+                    <distribution spec="Prior" x="@sigma2">
+                        <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" meanInRealSpace="true" M="1" S="0.5"/>
+                    </distribution>
+
+                    <distribution spec="Prior" >
+                        <x spec="mascot.util.Mean" arg="@reassortmentRate"/>
+                        <distr spec="beast.base.inference.distribution.Normal" mean="-5" sigma="1"/>
+                    </distribution>
+
+
 
                     <!--isconstant -->
 
@@ -303,7 +314,7 @@
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma2"/>
                     </distribution>
                     <distribution spec="Prior" x="@sigma2">
-                        <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" meanInRealSpace="true" M="1" S="0.5"/>
+                        <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" meanInRealSpace="true" M="1" S="1"/>
                     </distribution>
 
                     <!--isVariable -->
@@ -335,9 +346,9 @@
                 <transformations id="AVMNLogTransform.Mascot2" spec="operator.kernel.Transform$LogTransform">
                     <f idref="sigma"/>
                     <f idref="sigma2"/>
-                    <f idref="reassortmentRate"/>
                 </transformations>
                 <transformations id="AVMNNoTransform.Mascot2" spec="operator.kernel.Transform$NoTransform">
+                    <f idref="reassortmentRate"/>
                     <f idref="logInfected"/>
                 </transformations>
             </operator>
@@ -349,6 +360,13 @@
             <operator idref="AVMNOperator2"/>
             <operator id="reassortmentRateX.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@reassortmentRate" scaleFactor="0.5" weight="1.0"/>
         </operator>
+
+        <operator id="Sgima2Scaler.c" spec="AdaptableOperatorSampler" weight="0.25">
+            <parameter idref="sigma2"/>
+            <operator idref="AVMNOperator2"/>
+            <operator id="Sigma2ScalerX.c" spec="kernel.BactrianScaleOperator" parameter="@sigma2" upper="10.0" weight="3.0"/>
+        </operator> 
+
         <!--isconstant -->
 
         <!-- isinfectedSkyline-->
@@ -359,7 +377,6 @@
                 </transformations>
                 <transformations id="AVMNLogTransform.Mascot2" spec="operator.kernel.Transform$LogTransform">
                     <f idref="sigma"/>
-                    <f idref="sigma2"/>
                     <f idref="InfectedToRho"/>
                 </transformations>
                 <transformations id="AVMNNoTransform.Mascot2" spec="operator.kernel.Transform$NoTransform">
@@ -385,7 +402,6 @@
                 </transformations>  
                 <transformations id="AVMNLogTransform.Mascot2" spec="operator.kernel.Transform$LogTransform">
                     <f idref="sigma"/>
-                    <f idref="sigma2"/>
                 </transformations>
                 <transformations id="AVMNNoTransform.Mascot2" spec="operator.kernel.Transform$NoTransform">
                     <f idref="logInfected"/>
@@ -407,11 +423,11 @@
             <operator idref="AVMNOperator2"/>
             <operator id="SigmaScalerX.c" spec="kernel.BactrianScaleOperator" parameter="@sigma" upper="10.0" weight="3.0"/>
         </operator> 
-        <operator id="Sgima2Scaler.c" spec="AdaptableOperatorSampler" weight="0.25">
+        <!-- <operator id="Sgima2Scaler.c" spec="AdaptableOperatorSampler" weight="0.25">
             <parameter idref="sigma2"/>
             <operator idref="AVMNOperator2"/>
             <operator id="Sigma2ScalerX.c" spec="kernel.BactrianScaleOperator" parameter="@sigma2" upper="10.0" weight="3.0"/>
-        </operator> 
+        </operator>  -->
 
 
         <operator id="gammaShapeScaler.s:seg1" spec="AdaptableOperatorSampler" weight="0.05">
@@ -427,7 +443,7 @@
                     <f idref="freqParameter.s:seg7"/>
                 </transformations>
                 <transformations id="AVMNLogTransform.Mascot" spec="operator.kernel.Transform$LogTransform">
-                    <!-- <f idref="clockRate.c"/> -->
+                    <f idref="clockRate.c"/>
                     <f idref="gammaShape.s:seg1"/>
                     <f idref="kappa.s:seg1"/>
                     <f idref="gammaShape.s:seg2"/>
@@ -449,11 +465,11 @@
             <operator id="gammaShapeScalerX.s:seg1" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:seg1" scaleFactor="0.5" upper="10.0" weight="0.1"/>
         </operator>
 
-        <!-- <operator id="StrictClockRateScaler.c" spec="AdaptableOperatorSampler" weight="1">
+        <operator id="StrictClockRateScaler.c" spec="AdaptableOperatorSampler" weight="1">
             <parameter idref="clockRate.c"/>
             <operator idref="AVMNOperator"/>
             <operator id="StrictClockRateScalerX.c" spec="kernel.BactrianScaleOperator" parameter="@clockRate.c" upper="10.0" weight="3.0"/>
-        </operator> -->
+        </operator>
 
         <operator id="FrequenciesExchanger.s:seg1" spec="AdaptableOperatorSampler" weight="0.05">
             <parameter idref="freqParameter.s:seg1"/>
@@ -635,7 +651,7 @@
         </operator>
 
         <operator id="NetworkScale2" spec="NetworkScaleOperator" network="@network" weight="3.0" scaleFactor="0.8">
-            <!-- <upParameter idref="popSize"/> -->
+            <upParameter idref="popSize"/>
             <!-- <downParameter idref="clockRate.c"/> -->
             <!-- <downParameter idref="reassortmentRate"/> -->
             <segmentTree idref="seg1tree"/>
@@ -722,6 +738,7 @@
             <log idref="logInfected"/>
             <log idref="InfectedToRho"/>
             <log idref="sigma"/>
+            <log idref="sigma2"/>
             <!-- isinfectedSkyline
             <log idref="splinePop"/>
             <log idref="reassortmentDynamics"/>
@@ -757,7 +774,6 @@
             <log idref="kappa.s:seg7"/>
             <log idref="spline"/>
             <!-- isVariable-->
-            <log idref="sigma2"/>
             <log idref="reassortmentDynamics"/>
             <!--isVariable -->
         </logger>

@@ -39,8 +39,8 @@ logfiles <- list.files("./out", pattern="*.log", full.names=TRUE)
 # logfiles = logfiles[grepl("_13.", logfiles) ]
 
 # loop over all files
-# for (i in seq(1, length(logfiles))){
-for (i in seq(1, 30)){
+for (i in seq(1, length(logfiles))){
+# for (i in seq(1, 30)){
   # read in the log file to get the network height
   filename = gsub("./out/", "./master/", logfiles[[i]])  
   filename = gsub(".constant.", ".",filename)  
@@ -55,11 +55,6 @@ for (i in seq(1, 30)){
   timediff = as.numeric(strsplit(lins[[1]], split=":")[[1]][[2]]) - 
     as.numeric(strsplit(lins[[length(lins)]], split=":")[[1]][[2]])
 
-  # set the time points for the parameters
-  time_points = seq(0,timediff*1.1, length.out=15)
-  # get 500 points between 0 and 16
-  time_points2 = seq(0, timediff*1.1, length.out=500)
-  
   t = read.table(logfiles[i], header=TRUE, sep="\t")
   # remove 10 % as burnin
   t = t[round(0.2*nrow(t)):nrow(t),]
@@ -68,24 +63,37 @@ for (i in seq(1, 30)){
   # calculate the minimum ESS
   minESS = min(ess)
   # if the minimum ESS is below 100, print the filename
-  if (minESS < 0) {
+  # if the minimum ESS is below 100, print the filename
+  if (minESS < 50) {
+    print(minESS)
     print(logfiles[i])
     next
   }
+  
+  # read in the corresponding xml by replacing .log with .xml and the folder with xmls
+  xmlfile = gsub("out", "xmls", gsub(".log", ".xml", logfiles[i]))
+  # read in the xml file
+  xml = readLines(xmlfile)
+  # look for the line with id="rateShifts"
+  rateShifts = xml[grep("id=\"rateShifts\"", xml)]
+  
+  # split the line on " and get the second group
+  rateShifts = as.numeric(strsplit(strsplit(rateShifts, "\"")[[1]][6], split=" ")[[1]])
+  time_points2 = seq(0,max(rateShifts), length.out=500)
+  
   # split on . and get the second group as the method used
   method = strsplit(logfiles[i], "\\.")[[1]][3]
   # split on . and _ simultanously and get the third group as the runnumber
   run = as.numeric(strsplit(logfiles[i], "\\.|_")[[1]][4])
   # if the method is not constant
-  if (!grepl("constant", method)){
+  if (grepl("ne", method)){
     # initialize the prevalence vector
     prevalence = c()
     prevalencel = c()
     prevalenceu = c()
-    
     time = c()
     # loop over all the labels in t that start with reassortment%d, where %d is a number in time_points2
-    for (j in seq(0, length(time_points2)-1)){
+    for (j in seq(0, length(time_points2)-1, 10)){
       # get the prevalence at the time point, if the label exists
       if (paste0("reassortment", j) %in% colnames(t)){
         prevalence = c(prevalence, median(t[,paste0("reassortment", j)]))
@@ -104,7 +112,38 @@ for (i in seq(1, 30)){
     prevalenceu = prevalenceu/transmision0
     # add the data to a data frame
     est.data = rbind(est.data, data.frame(method=method, run=run, time=time, 
-            prevalence=prevalence, prevalencel=prevalencel, prevalenceu=prevalenceu)) 
+                                          prevalence=prevalence, prevalencel=prevalencel, prevalenceu=prevalenceu)) 
+  }  else if (grepl("variable", method)){
+    # initialize the prevalence vector
+    prevalence = c()
+    prevalencel = c()
+    prevalenceu = c()
+    time = c()
+    # loop over all the labels in t that start with reassortment%d, where %d is a number in time_points2
+    for (j in seq(1, length(rateShifts))){
+      # get the prevalence at the time point, if the label exists
+      if (paste0("InfectedToRho.", j) %in% colnames(t)){
+        prevalence = c(prevalence, median(t[,paste0("InfectedToRho.", j)]))
+        prevalence = c(prevalence, median(t[,paste0("InfectedToRho.", j)]))
+        # get the 2.5 and 97.5 quantile
+        prevalencel = c(prevalencel, quantile(t[,paste0("InfectedToRho.", j)], 0.025))
+        prevalenceu = c(prevalenceu, quantile(t[,paste0("InfectedToRho.", j)], 0.975))
+        prevalencel = c(prevalencel, quantile(t[,paste0("InfectedToRho.", j)], 0.025))
+        prevalenceu = c(prevalenceu, quantile(t[,paste0("InfectedToRho.", j)], 0.975))
+        # time
+        time = c(time, rateShifts[j]+0.00001)
+        time = c(time, rateShifts[j+1])
+      }    
+    }
+    # get the value in simulated in the run row and "transmission" column
+    transmision0 = simulated[run, "transmission"]
+    # devide prevalence by transmission0
+    prevalence = exp(prevalence)/transmision0
+    prevalencel = exp(prevalencel)/transmision0
+    prevalenceu = exp(prevalenceu)/transmision0
+    # add the data to a data frame
+    est.data = rbind(est.data, data.frame(method=method, run=run, time=time, 
+                                          prevalence=prevalence, prevalencel=prevalencel, prevalenceu=prevalenceu)) 
   }else{
     # if the method is constant
     # get the value in simulated in the run row and "transmission" column
@@ -122,8 +161,8 @@ for (i in seq(1, 30)){
     # time
     # add to the data.frame
     const.est.data = rbind(const.est.data, data.frame(method=method, run=run, time=NA, 
-            prevalence=prevalence/transmision0, prevalencel=prevalencel/transmision0, 
-            prevalenceu=prevalenceu/transmision0))
+                                                      prevalence=prevalence/transmision0, prevalencel=prevalencel/transmision0, 
+                                                      prevalenceu=prevalenceu/transmision0))
   }
   reassortment.data = rbind(reassortment.data, data.frame(method=method, run=run, 
           events=median(t[, "network.reassortmentNodeCount"]), 
@@ -148,8 +187,8 @@ logfiles <- list.files("./master", pattern="*.log", full.names=TRUE)
 # logfiles = logfiles[grepl("_13.", logfiles) ]
 
 # loop over all files
-# for (i in seq(1, length(logfiles))){
-for (i in seq(1, 10)){
+for (i in seq(1, length(logfiles))){
+# for (i in seq(1, 10)){
   # split on . and _ simultanously and get the third group as the runnumber
   run = as.numeric(strsplit(logfiles[i], "\\.|_")[[1]][4])
   
@@ -395,33 +434,34 @@ for (run in unique(reassortment.events$run)){
 }
 
 
-runnr = unique(reassortment.data[reassortment.data$true>30 & !is.na(reassortment.data$true), "run"])
-
-# only pick runnr for which true.data has method=="ne" for this run
+uni.run = unique(dynamic_est_data$run)
+# for each value in uni.run, check if two methods are present, otherwise remove the value from uni.run
 use.runs = c()
-for (run in runnr){
-  if (sum(est.data$run==run & est.data$method=="variable" )>0){
-    use.runs = c(use.runs, run)
+for (i in uni.run){
+  if (length(unique(dynamic_est_data[dynamic_est_data$run==i,]$method))==2){
+    use.runs = c(use.runs, i)
   }
 }
+set.seed(15234)
+# pick 12 random runs
+use.runs.1 = sample(use.runs, 9)
 
 
-use.runs = use.runs[seq(1, 10)]
 # plot the results, for true.data, plot the stacked prevalence over time
-p = ggplot(true.data[is.element(true.data$run,use.runs),])+
-      geom_ribbon(data=est.data[is.element(est.data$run,use.runs) & est.data$method=="variable",], aes(x=mrsi-time, ymin=prevalencel, ymax=prevalenceu, fill=method), alpha=0.25) +
-      geom_line(data=est.data[is.element(est.data$run,use.runs) & est.data$method=="variable",], aes(x=mrsi-time, y=prevalence, color=method)) +
-      # geom_ribbon(data=est.data[is.element(est.data$run,use.runs) & est.data$method=="ne",], aes(x=mrsi-time, ymin=prevalencel, ymax=prevalenceu, fill=method), alpha=0.25) +
-      # geom_line(data=est.data[is.element(est.data$run,use.runs) & est.data$method=="ne",], aes(x=mrsi-time, y=prevalence, color=method)) +
+p = ggplot(true.data[is.element(true.data$run,use.runs.1),])+
+      geom_ribbon(data=est.data[is.element(est.data$run,use.runs.1) & est.data$method=="variable",], aes(x=mrsi-time, ymin=prevalencel, ymax=prevalenceu, fill=method), alpha=0.25) +
+      geom_line(data=est.data[is.element(est.data$run,use.runs.1) & est.data$method=="variable",], aes(x=mrsi-time, y=prevalence, color=method)) +
+      # geom_ribbon(data=est.data[is.element(est.data$run,use.runs.1) & est.data$method=="ne",], aes(x=mrsi-time, ymin=prevalencel, ymax=prevalenceu, fill=method), alpha=0.25) +
+      # geom_line(data=est.data[is.element(est.data$run,use.runs.1) & est.data$method=="ne",], aes(x=mrsi-time, y=prevalence, color=method)) +
       geom_line(aes(x=time, y=weighted_prev, color="lineage weighted mean prevalence across states"))+
       geom_line(aes(x=time, y=mean_prev, color="mean prevalence across states"))+
       # geom_line(aes(x=time, y=num_lineages/500, color="lineages through time"))+
       # geom_line(aes(x=time, y=max_prev, color="max prevalence across states"))+
-      geom_point(data=reassortment.events[is.element(reassortment.events$run,use.runs),], aes(x=time, y=0.19), alpha=0.2, size=2)+
-      # geom_ribbon(data=est.data[is.element(est.data$run,use.runs) & est.data$method=="ne",], aes(x=mrsi-time, ymin=prevalencel, ymax=prevalenceu, fill=method), alpha=0.25) +
-      # geom_line(data=est.data[is.element(est.data$run,use.runs) & est.data$method=="ne",], aes(x=mrsi-time, y=prevalence, color=method)) +
+      geom_point(data=reassortment.events[is.element(reassortment.events$run,use.runs.1),], aes(x=time, y=0.19), alpha=0.2, size=2)+
+      geom_ribbon(data=est.data[is.element(est.data$run,use.runs.1) & est.data$method=="ne",], aes(x=mrsi-time, ymin=prevalencel, ymax=prevalenceu, fill=method), alpha=0.25) +
+      geom_line(data=est.data[is.element(est.data$run,use.runs.1) & est.data$method=="ne",], aes(x=mrsi-time, y=prevalence, color=method)) +
       # plot the reassortment events as vertical lines
-      # geom_density(data = inst.rate[is.element(inst.rate$run,use.runs),], aes(x=time, color="instantaneous reassortment rate"))+
+      # geom_density(data = inst.rate[is.element(inst.rate$run,use.runs.1),], aes(x=time, color="instantaneous reassortment rate"))+
       facet_wrap(~run, ncol=3, scales = "free") +
       theme_minimal() +
       coord_cartesian(ylim=c(0,0.2)) +

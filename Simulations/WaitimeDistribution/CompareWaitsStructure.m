@@ -2,12 +2,15 @@ clear
 close all
 % read in sim_1.log of the form "Sample SIREvents Lineages" as a string seperated by \t and with one header line
 vals=[];
-for iteration = 1 : 100
+
+fwait = fopen('structWaitTimes.tsv', 'w');
+
+for iteration = 1 : 500
     % read in the file fopen(['../SIR/master/SIR_simulations_' i '.xml'], find the lines  transmissionRate="......" and populationSize="..." and set the 
     % parameters transmission_rate and popS_Size to the values found
     % in the file
     
-    f = fopen(['../structuredSIR/master/structuredSIR_simulations_' num2str(iteration) '.xml']);
+    f = fopen(['master/structuredSIR_simulations_' num2str(iteration) '.xml']);
     while ~feof(f)
         line = fgetl(f);
         if contains(line, '<transmissionRate spec="RealParameter" value="')            
@@ -24,7 +27,7 @@ for iteration = 1 : 100
     fclose(f);
 
     
-    data = textscan(fopen(['../structuredSIR/master/structuredSIR_simulations_' num2str(iteration) '.log']), '%s', 'delimiter', '\t', 'headerlines', 1);
+    data = textscan(fopen(['master/structuredSIR_simulations_' num2str(iteration) '.log']), '%s', 'delimiter', '\t', 'headerlines', 1);
     
     % the SIR events are the 2:3:end entries in the data cell array
     SIR_events = data{1}(2:3:end);
@@ -165,6 +168,7 @@ for iteration = 1 : 100
                 no_lins(end, str2double(tmp2{2})+1) = no_lins(end, str2double(tmp2{2})+1)+1;
                 no_lins(end, str2double(tmp2{1})+1) = no_lins(end, str2double(tmp2{1})+1)-1;
 
+
             end       
         end       
     
@@ -207,7 +211,10 @@ for iteration = 1 : 100
     
     
     % times_between_reassortment
-    
+    for j =1:length(times_between_reassortment)    
+        fprintf(fwait, '%d\t%f\n', iteration, times_between_reassortment(j)*avg_rate(j));
+    end
+
     vals = [vals, times_between_reassortment.*avg_rate];
     fprintf('mean = %.3f std = %.3f\n', mean(vals),std(vals));
     fprintf('total reassortment events in network = %.3f\n', length(times_between_reassortment))
@@ -217,6 +224,9 @@ end
 ksdensity(vals); hold on
 ksdensity(exprnd(1,1000000,1)); 
 legend('wait time distribution', 'exponential distribution')
+
+fclose(fwait);
+
 
 % compare the total number of reassortment event and the probability of
 % observing those
