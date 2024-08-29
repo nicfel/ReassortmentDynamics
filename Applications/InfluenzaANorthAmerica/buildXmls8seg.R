@@ -20,7 +20,7 @@ file.remove(list.files("./xmls", pattern="*.xml", full.names=TRUE))
 
 # define the root height for Ne and reassortment variant rates
 timediff = 5
-rateshiftvals = c(seq(0, 0.5, length.out=10), seq(0.6, 1, length.out=10), 1.5)
+rateshiftvals = unique(seq(0, 1, length.out=20), 1.5)
 # rateshiftvals2 = c(seq(0, 1,5, length.out=5), seq(2, timediff, length.out=2), 15)
 rateshiftvals2 = rateshiftvals
 
@@ -95,9 +95,9 @@ for (a in 1:length(virus)) {
     # read in the log file to get the network height
     filename = paste(virus[[a]], "_", year[[b]] , ".constant", sep="")
     # build an inference xml files
-    f <- file(sprintf('xmls/%s.xml',filename), 'w')
+    f <- file(sprintf('xmls/%s.rep0.xml',filename), 'w')
     # Open the template file
-    template <- file('../H5N1NorthAmerica/inference_template_wgs.xml', 'r')
+    template <- file('../H5N1NorthAmerica/inference_template_wgs_cr.xml', 'r')
     
     
     
@@ -111,9 +111,9 @@ for (a in 1:length(virus)) {
         }
       }else if (grepl('insert_clock_rate', line)){
         if (virus[[a]] == 'H1N1') {
-          writeLines(gsub('insert_clock_rate', '0.003', line), f)
+          writeLines(gsub('insert_clock_rate', '0.0025', line), f)
         } else {
-          writeLines(gsub('insert_clock_rate', '0.003', line), f)
+          writeLines(gsub('insert_clock_rate', '0.0025', line), f)
         }
         
       }else if (grepl('insert_seg1', line)){
@@ -212,9 +212,9 @@ for (a in 1:length(virus)) {
     
     # make a second xml where the .trees is replaced by .infected
     filename = paste(virus[[a]], "_", year[[b]] , ".variable", sep="")
-    f <- file(sprintf('xmls/%s.xml', filename), 'w')
+    f <- file(sprintf('xmls/%s.rep0.xml', filename), 'w')
     # Open the template file
-    template <- file('../H5N1NorthAmerica/inference_template_wgs.xml', 'r')
+    template <- file('../H5N1NorthAmerica/inference_template_wgs_cr.xml', 'r')
     while (length(line <- readLines(template, n = 1)) > 0) {
       if (grepl('insert_name', line)) {
         writeLines(gsub('insert_name', sprintf('%s', filename), line), f)
@@ -437,3 +437,9 @@ for (a in 1:length(virus)) {
 }
 
 
+# for all *.rep0.xml files in xmls, make a copy with the same name but .rep1.xml
+# and .rep2.xml
+for (file in list.files("./xmls", pattern="*.rep0.xml", full.names=TRUE)) {
+  file.copy(file, gsub("rep0", "rep1", file))
+  file.copy(file, gsub("rep0", "rep2", file))
+}
