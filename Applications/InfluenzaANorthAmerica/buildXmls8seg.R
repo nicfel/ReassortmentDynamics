@@ -20,7 +20,7 @@ file.remove(list.files("./xmls", pattern="*.xml", full.names=TRUE))
 
 # define the root height for Ne and reassortment variant rates
 timediff = 5
-rateshiftvals = unique(seq(0, 1, length.out=20), 1.5)
+rateshiftvals = unique(c(seq(0, 1, length.out=20), 1.5, 3, 5))
 # rateshiftvals2 = c(seq(0, 1,5, length.out=5), seq(2, timediff, length.out=2), 15)
 rateshiftvals2 = rateshiftvals
 
@@ -177,7 +177,7 @@ for (a in 1:length(virus)) {
         # EOS = max(as.numeric(strsplit(isolates[length(isolates)], "\\|")[[1]][[3]]))
         # # get the peak of that season
         # EOS = max(dates) - as.numeric(start_time)
-        pretime = c(seq(0.1, 0.6, length.out=20), 0.8, 1, 1.5)
+        pretime = rateshiftvals2
         writeLines(gsub('insert_EOS', paste(pretime, collapse = " "), line), f)
       }else if (grepl('insert_weights', line)) {
         # get the length of both alignments
@@ -251,7 +251,7 @@ for (a in 1:length(virus)) {
         
       }else if (grepl('insert_EOS', line)){
         # get the most recent sampling time
-        writeLines(gsub('insert_EOS', paste(rateshiftvals2[2:length(rateshiftvals2)], collapse = " "), line), f)
+        writeLines(gsub('insert_EOS', paste(rateshiftvals2, collapse = " "), line), f)
         
         # mask all the non isConstant entries, i.e. isinfectedSkyline
       } else if (grepl('isconstant-->', line)) {

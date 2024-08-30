@@ -43,7 +43,7 @@
     </traitSet>
 
 
-    <run spec="coupledMCMC.CoupledMCMC" chains="2" chainLength="2500000" storeEvery="50000" resampleEvery="1000">
+    <run spec="MCMC" chainLength="2500000">
         <state  storeEvery="50000">
             <stateNode id="seg1tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
             <stateNode id="seg2tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
@@ -54,8 +54,8 @@
             <stateNode id="seg7tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
             <stateNode id="seg8tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
 
-            <stateNode id="sigma" spec="RealParameter" value="1"/>
-            <stateNode id="sigma2" spec="RealParameter" value="1"/>
+            <stateNode id="sigma" spec="RealParameter" lower="0.25" value="1"/>
+            <stateNode id="sigma2" spec="RealParameter" lower="0.25" value="1"/>
             <stateNode id="popSize" spec="RealParameter" value="1.0293"/>
             <stateNode id="reassortmentRate" spec="RealParameter" value="0.1211"/>
 
@@ -261,7 +261,7 @@
                         <spline id="spline" spec="coalre.dynamics.Spline" infectedIsNe="true" logInfected="@logInfected" rateShifts="@rateShifts" uninfectiousRate="@recoveryRate" gridPoints="1000"/>
                     </populationModel>
                     <timeVaryingReassortmentRates id="reassortmentDynamics" spec="coalre.dynamics.PiecewiseConstantReassortmentRateScalers" InfectedToRho="@InfectedToRho" spline="@spline">
-                        <rateShifts id="rateShifts2" spec="RealParameter" value="0 insert_EOS"/>
+                        <rateShifts id="rateShifts2" spec="RealParameter" value="insert_EOS"/>
                     </timeVaryingReassortmentRates>
                     <!--isNeSkyline -->
 
@@ -271,7 +271,7 @@
                     </populationModel>
                     <timeVaryingReassortmentRates id="reassortmentDynamics" spec="coalre.dynamics.RecombinationDynamicsFromSpline">
                         <infectedToRhoSpline id="rhoSpline" spec="coalre.dynamics.Spline" infectedIsNe="true" logInfected="@InfectedToRho" uninfectiousRate="@recoveryRate" gridPoints="1000">
-                            <rateShifts id="rateShifts2" spec="RealParameter" value="0 insert_EOS"/>
+                            <rateShifts id="rateShifts2" spec="RealParameter" value="insert_EOS"/>
                         </infectedToRhoSpline>
                         <spline idref="spline"/>
                     </timeVaryingReassortmentRates>
@@ -289,6 +289,8 @@
                     </distribution>
 
                     <!-- isconstant-->
+
+
                     <distribution spec="Prior">
                         <x spec="mascot.util.Difference" arg="@logInfected"/>
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma"/>
@@ -297,14 +299,14 @@
                         <x spec="mascot.util.Difference" arg="@reassortmentRate"/>
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma2"/>
                     </distribution>
+                    <distribution spec="Prior" x="@sigma">
+                        <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" meanInRealSpace="true" M="1" S="1"/>
+                    </distribution>
                     <distribution spec="Prior" x="@sigma2">
-                        <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" meanInRealSpace="true" M="1" S="0.5"/>
+                        <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" meanInRealSpace="true" M="1" S="1"/>
                     </distribution>
 
-                    <distribution spec="Prior" >
-                        <x spec="mascot.util.Mean" arg="@reassortmentRate"/>
-                        <distr spec="beast.base.inference.distribution.Normal" mean="-5" sigma="1"/>
-                    </distribution>
+                    
 
 
 
@@ -328,12 +330,16 @@
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma"/>
                     </distribution>
                     <distribution spec="Prior">
-                        <x spec="coalre.dynamics.Difference" arg="@InfectedToRho"/>
+                        <x spec="mascot.util.Difference" arg="@InfectedToRho"/>
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma2"/>
+                    </distribution>
+                    <distribution spec="Prior" x="@sigma">
+                        <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" meanInRealSpace="true" M="1" S="1"/>
                     </distribution>
                     <distribution spec="Prior" x="@sigma2">
                         <distr spec="beast.base.inference.distribution.LogNormalDistributionModel" meanInRealSpace="true" M="1" S="1"/>
                     </distribution>
+
 
                     <!--isVariable -->
 
@@ -378,7 +384,7 @@
         <operator id="reassortmentRateScaler.s:" spec="AdaptableOperatorSampler" weight="3.0">
             <parameter idref="reassortmentRate"/>
             <operator idref="AVMNOperator2"/>
-            <operator id="reassortmentRateX.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@reassortmentRate" scaleFactor="0.5" weight="1.0"/>
+            <operator id="reassortmentRateX.t" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@reassortmentRate" scaleFactor="0.5" weight="1.0"/>
         </operator>
 
         <operator id="Sgima2Scaler.c" spec="AdaptableOperatorSampler" weight="0.25">
@@ -730,6 +736,8 @@
         <logger spec="Logger" logEvery="10000" fileName="$(filebase).log">
             <log idref="posterior"/>
             <log idref="likelihood"/>
+            <log idref="networkPrior"/>
+            <log idref="parametersPrior"/>
             <log spec="NetworkStatsLogger" network="@network"/>
             <log spec="TreeStatLogger" tree="@seg1tree"/>
             <log spec="TreeStatLogger" tree="@seg2tree"/>
