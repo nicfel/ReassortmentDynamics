@@ -14,9 +14,9 @@ setwd(this.dir)
 file.remove(list.files("./xmls/", pattern="*.xml", full.names=TRUE))
 
 # define the root height for Ne and reassortment variant rates
-first_intro = 5
+first_intro = 4.5
 
-rateshiftvals = c(seq(0, first_intro, length.out=15), seq(first_intro, 10, length.out=6))
+rateshiftvals = c(seq(0, first_intro, length.out=15), seq(first_intro, 30, length.out=6))
 rateshiftvals = unique(rateshiftvals)
 rateshiftvals2 = rateshiftvals
 
