@@ -20,9 +20,6 @@ file.remove(list.files("./xmls", pattern="*.xml", full.names=TRUE))
 
 # define the root height for Ne and reassortment variant rates
 timediff = 5
-rateshiftvals = unique(c(seq(0, 1, length.out=20), 1.5, 3, 5))
-# rateshiftvals2 = c(seq(0, 1,5, length.out=5), seq(2, timediff, length.out=2), 15)
-rateshiftvals2 = rateshiftvals
 
 # read in the who data
 who_NA = read.csv("./whoData/NA_who_sentinel.csv", header = TRUE)
@@ -57,7 +54,7 @@ for (a in 1:length(virus)) {
     peak_prior = peak[peak$date <= peak_date,]
     # get the last time, befor cases where 1/20 of the peak
     start = peak_prior[peak_prior$cases < peak[which.max(peak$cases),"cases"]/8,]
-    start_time = start[length(start$date),"date"]-3*365
+    start_time = start[length(start$date),"date"]
     if (length(start_time)==0){
       start_time = peak_date-3*365
     }
@@ -69,17 +66,31 @@ for (a in 1:length(virus)) {
     }  
     
     date_vals = data.frame(dates=as.Date(dates))
+
+    independentAfterTime = max(min(dates), start_time)
+    timediff = (max(dates)-independentAfterTime)/365
+
+    print(timediff)
     
-    # plot the cases for peak
+    rateshiftvals = unique(c(seq(0, 1, length.out=20), 1.5, 3, 5))
+    rateshiftvals2 = rateshiftvals
+
+    # find the index of the first rateshiftvals2 > timediff
+    independentIndex = which(rateshiftvals2 > timediff)[1]
+    
     
     p1=ggplot(data=peak, aes(x=date, y=cases)) + geom_line() + geom_point() + theme_minimal() + 
       geom_vline(xintercept = peak_date, linetype="dashed")+
       geom_vline(xintercept = start_time, linetype="dashed")+
+      geom_vline(xintercept =  min(dates), linetype="dashed")+
+      geom_vline(xintercept = max(dates)-rateshiftvals2[independentIndex+1]*365, color="red")+
       ggtitle(paste(virus[[a]], " ", year[[b]], " peak date: ", peak_date, " start date: ", start_time))+
-      coord_cartesian(xlim = c(min(peak$date), max(peak$date)))
+      coord_cartesian(xlim = c(min(peak$date), max(peak$date))) +
+      geom_text(label=timediff, x=max(dates)-rateshiftvals2[independentIndex+1]*365, y=10, color="red")
     p2=ggplot(date_vals, aes(x=dates)) + geom_histogram(binwidth=7) + theme_minimal() + 
       geom_vline(xintercept = peak_date, linetype="dashed")+
       geom_vline(xintercept = start_time, linetype="dashed")+
+      geom_vline(xintercept =  min(dates), linetype="dashed")+
       ggtitle(paste(virus[[a]], " ", year[[b]], " peak date: ", peak_date, " start date: ", start_time))+
       coord_cartesian(xlim = c(min(peak$date), max(peak$date)))
     
@@ -87,10 +98,9 @@ for (a in 1:length(virus)) {
     p = grid.arrange(p1, p2, ncol=1)
     plot(p)
     
+
     # save plot p to samplingFigs/
     ggsave(plot=p, filename=paste("./samplingFigs/", base, "_sampling.pdf", sep=""), width=6, height=5)
-    
-    
     
     # read in the log file to get the network height
     filename = paste(virus[[a]], "_", year[[b]] , ".constant", sep="")
@@ -98,9 +108,7 @@ for (a in 1:length(virus)) {
     f <- file(sprintf('xmls/%s.rep0.xml',filename), 'w')
     # Open the template file
     template <- file('../H5N1NorthAmerica/inference_template_wgs_cr.xml', 'r')
-    
-    
-    
+
     while (length(line <- readLines(template, n = 1)) > 0) {
       if (grepl('insert_name', line)) {
         writeLines(gsub('insert_name', sprintf('%s', filename), line), f)
@@ -203,6 +211,8 @@ for (a in 1:length(virus)) {
                                                 sequence_length_seg3, sequence_length_seg4,
                                                 sequence_length_seg5, sequence_length_seg6,
                                                 sequence_length_seg7, sequence_length_seg8), line), f)
+      }else if (grepl('insert_independent_after', line)) {
+        writeLines(gsub('insert_independent_after', as.character(independentIndex), line), f)
       } else {
         writeLines(line, f)
       }
@@ -310,14 +320,41 @@ for (a in 1:length(virus)) {
                                                 sequence_length_seg3, sequence_length_seg4,
                                                 sequence_length_seg5, sequence_length_seg6,
                                                 sequence_length_seg7, sequence_length_seg8), line), f)
+      }else if (grepl('insert_independent_after', line)) {
+        timediff = (max(dates)-independentAfterTime)/365
+        # find the index of the first rateshiftvals2 > timediff
+        index = which(rateshiftvals2 > timediff)[1]
+        writeLines(gsub('insert_independent_after', as.character(independentIndex), line), f)
+      }else if (grepl('insert_cases_cases', line)) {
+        weekly_cases = peak$cases
+        week_start_offset = (as.Date(max(dates)) - peak$date)/365
+        
+        # get the first index where week_start_offset is smaller than 0
+        index = which(week_start_offset <= 0.0)[1]
+        # log standardize the cases
+        weekly_cases = log(c(weekly_cases[index:1]+1, 1))
+        weekly_cases = (weekly_cases - mean(weekly_cases))/sd(weekly_cases)
+        week_start_offset = week_start_offset
+        week_start_offset[index]=0
+        week_start_offset = c(week_start_offset[index:1], rateshiftvals2[length(rateshiftvals2)])
+        print(week_start_offset)
+        if (length(week_start_offset)!=length(weekly_cases)){
+          print("error")
+        }
+        
+        writeLines(gsub('insert_cases_cases', paste(weekly_cases, collapse=" "), line), f)
+      } else if (grepl('insert_cases_time', line)){
+        writeLines(gsub('insert_cases_time', paste(week_start_offset, collapse=" "), line), f)
+      } else if (grepl('<stateNode id="InfectedToRho" spec="RealParameter"', line)){
+        writeLines('\t\t\t\t<stateNode id="InfectedToRho" spec="RealParameter" lower="-6" value="-1 -1.5"/>', f)
+      
       } else {
         writeLines(line, f)
       }
     }
     close(f)
     close(template)
-    
-    
+
     # skip this file
     next
     

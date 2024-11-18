@@ -307,7 +307,7 @@ plot(p)
 # save the results
 ggsave("./../../Figures/Sir.pdf", p, width = 9, height = 6)
 
-p = ggplot(true.data[true.data$run %in% use.runs.2,], aes(x=time, y=prevalence/popSize))+
+p = ggplot(true.data[true.data$run %in% use.runs.2 ,], aes(x=time, y=prevalence/popSize))+
   geom_line() +
   geom_ribbon(data=dynamic_est_data[dynamic_est_data$run %in% use.runs.2,], aes(x=mrsi-time, ymin=prevalencel, ymax=prevalenceu, fill=method), alpha=0.25) +
   geom_line(data=dynamic_est_data[dynamic_est_data$run %in% use.runs.2,], aes(x=mrsi-time, y=prevalence, color=method)) +

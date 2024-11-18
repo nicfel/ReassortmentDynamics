@@ -46,6 +46,8 @@ interpolate_I_over_grid <- function(rateShifts, splineCoeffs, gridPoints, dt) {
 # Set random seed for reproducibility
 set.seed(6465546)
 
+burnin = 0.3
+
 # Set the directory to the directory of the file
 this.dir <- dirname(parent.frame(2)$ofile)
 setwd(this.dir)
@@ -223,13 +225,15 @@ for (i in seq(1,length(cases$YEAR))){
 
 # do the same, but read in the reassortment rates from the log files of all runs
 # with constant in the name, use the column reassortmentRate.1
-files <- list.files("./out2/", pattern="*.log", full.names=TRUE)
+# get all log files ending in rep0.log
+files <- list.files("./out/", pattern="*.log", full.names=TRUE)
+files = files[grep("rep0", files)]
 # only keep the ones that say constant
 files = files[grep("constant", files)]
 dynamics.constant = data.frame()
 for (i in seq(1, length(files))) {
   # read in the corresponding xml file in the xmls folder that ends in xml instead of log as an xml file line by line
-  filenmae = gsub("out2", "xmls", files[i])
+  filenmae = gsub("out", "xmls", files[i])
   xmlFile = readLines(gsub("log", "xml", filenmae))
   # look for the line that <stateNode id="rateShifts" spec="RealParameter" and get the values
   rateShifts = strsplit(xmlFile[grep("<stateNode id=\"rateShifts\" spec=\"RealParameter\"", xmlFile)], 
@@ -245,14 +249,21 @@ for (i in seq(1, length(files))) {
   rateShifts2 = strsplit(xmlFile[grep("<rateShifts id=\"rateShifts2\" spec=\"RealParameter\" value=\"", xmlFile)], 
                          split="\"")[[1]][6]
   
+  # find the line that contains independentAfter="%d" and get the value
+  independentAfter = as.numeric(strsplit(xmlFile[grep("independentAfter=", xmlFile)][1], split="\"")[[1]][6])
+  
+  
   rateShiftsNe = as.numeric(strsplit(rateShifts, split=" ")[[1]])
   rateShiftsRea = as.numeric(strsplit(rateShifts2, split=" ")[[1]])
   
   
   
-  t <- read.table(files[i], header = TRUE, sep = "\t")
-  # take a 10% burnin
-  t = t[round(nrow(t)*0.5):nrow(t),]
+  t1 <- read.table(files[i], header = TRUE, sep = "\t")
+  t2 <- read.table(gsub("rep0", "rep1", files[i]), header = TRUE, sep = "\t")
+  t3 <- read.table(gsub("rep0", "rep2", files[i]), header = TRUE, sep = "\t")
+  
+  # combined them all after a 10% burnin
+  t = rbind(t1[round(nrow(t1)*burnin):nrow(t1),], t2[round(nrow(t2)*burnin):nrow(t2),], t3[round(nrow(t3)*burnin):nrow(t3),])
   # get the virus and the year from the tree file
   virus = str_extract(basename(files[i]), "H1N1|H3N2")
   year = as.numeric(str_extract(basename(files[i]), "2015|2016|2017|2018|2019|2020|2021|2022|2023"))
@@ -266,7 +277,7 @@ for (i in seq(1, length(files))) {
   from = as.Date(paste(year, 6, 1, sep = "-"), format = "%Y-%m-%d")
   to = as.Date(paste(year+1, 5, 31, sep = "-"), format = "%Y-%m-%d")
 
-  for (j in seq(1, length(rateShiftsRea)-5)){
+  for (j in seq(1, independentAfter-1)){
     vals = exp(t[,paste("reassortmentRate.", j, sep="")])
 
     dynamics.constant = rbind(dynamics.constant, data.frame(virus = virus,
@@ -315,14 +326,16 @@ ggsave("./../../Figures/InfA_Prevalence_piecewise.pdf", p, width = 9, height = 5
 
 # do the same, but read in the reassortment rates from the log files of all runs
 # with constant in the name, use the column reassortmentRate.1
-files <- list.files("./out2/", pattern="*.log", full.names=TRUE)
+files <- list.files("./out/", pattern="*.log", full.names=TRUE)
+files = files[grep("rep0", files)]
 # only keep the ones that say constant
 files = files[grep("variable", files)]
 dynamics = data.frame()
 ne = data.frame()
 for (i in seq(1, length(files))) {
+  print(files[i])
   # read in the corresponding xml file in the xmls folder that ends in xml instead of log as an xml file line by line
-  filenmae = gsub("out2", "xmls", files[i])
+  filenmae = gsub("out", "xmls", files[i])
   xmlFile = readLines(gsub("log", "xml", filenmae))
   # look for the line that <stateNode id="rateShifts" spec="RealParameter" and get the values
   rateShifts = strsplit(xmlFile[grep("<stateNode id=\"rateShifts\" spec=\"RealParameter\"", xmlFile)], 
@@ -331,6 +344,9 @@ for (i in seq(1, length(files))) {
   dateline = grep("<traitSet spec=\"TraitSet\" traitname=\"date-forward\" id=\"traitSet\" dateFormat=\"yyyy-M-dd\">", xmlFile)
   # get all dates in xmlFile[dateline+1] of form yyyy-mm-dd
   datechar = xmlFile[dateline+1]
+  # find the line that contains independentAfter="%d" and get the value
+  independentAfter = as.numeric(strsplit(xmlFile[grep("independentAfter=", xmlFile)][1], split="\"")[[1]][6])
+
   # regexp for all yyyy-mm-dd
   dates = str_extract_all(datechar, "\\d{4}-\\d{2}-\\d{2}")[[1]]
   mrsi = max(as.Date(dates))
@@ -341,11 +357,11 @@ for (i in seq(1, length(files))) {
   rateShiftsNe = as.numeric(strsplit(rateShifts, split=" ")[[1]])
   rateShiftsRea = as.numeric(strsplit(rateShifts2, split=" ")[[1]])
   
-  
-  
-  t <- read.table(files[i], header = TRUE, sep = "\t")
-  # take a 10% burnin
-  t = t[round(nrow(t)*0.7):nrow(t),]
+  t1 <- read.table(files[i], header = TRUE, sep = "\t")
+  t2 <- read.table(gsub("rep0", "rep1", files[i]), header = TRUE, sep = "\t")
+  t3 <- read.table(gsub("rep0", "rep2", files[i]), header = TRUE, sep = "\t")
+  # combined them all after a 10% burnin
+  t = rbind(t1[round(nrow(t1)*burnin):nrow(t1),], t2[round(nrow(t2)*burnin):nrow(t2),], t3[round(nrow(t3)*burnin):nrow(t3),])
   # get the virus and the year from the tree file
   virus = str_extract(basename(files[i]), "H1N1|H3N2")
   year = as.numeric(str_extract(basename(files[i]), "2015|2016|2017|2018|2019|2020|2021|2022|2023"))
@@ -360,7 +376,11 @@ for (i in seq(1, length(files))) {
   to = as.Date(paste(year+1, 5, 31, sep = "-"), format = "%Y-%m-%d")
 
   timestep = max(rateShiftsNe)/1000
-  no_points = floor(0.7/timestep)
+  
+  # define the endpoint based on the independent after
+  endtime=rateShiftsNe[independentAfter-1]
+  
+  no_points = floor(endtime/timestep)
   
   # dynamics = rbind(dynamics, data.frame(virus = virus,
   #                                       time=mrsi-(timestep)/2*365,
@@ -381,33 +401,37 @@ for (i in seq(1, length(files))) {
   }
   
   
-  for (i in 1:length(rateShiftsNe)) {
-    # start a new matrix of size length(unique(t$Sample)) and 1000
-    I = matrix(0, nrow=length(t$Sample), ncol=1000)
-    # init a length(timepoints)x4 matrix for the splineCoefficents
-    splineCoeffs = matrix(0, nrow=length(rateShiftsNe)-1, ncol=4)
-    # for each Sample in t, compute the Ne trajectory
-    for (s in 1:length(t$Sample)) {
-      # populate the spline coeffients for this iteration of t of the names splineCoeffs_0_0....
-      for (a in 1:length(rateShiftsNe)-1){
-        for (b in seq(1, 4)){
-          splineCoeffs[a,b] = t[s, paste("splineCoeffs", a-1, b-1, sep="_")]
-        }
+  # for (i in 1:length(rateShiftsNe)) {
+  # start a new matrix of size length(unique(t$Sample)) and 1000
+  I = matrix(0, nrow=length(t$Sample), ncol=1000)
+  # init a length(timepoints)x4 matrix for the splineCoefficents
+  splineCoeffs = matrix(0, nrow=length(rateShiftsNe)-1, ncol=4)
+  # for each Sample in t, compute the Ne trajectory
+  # get 200 samples, equally spaced between 1 and t$Sample
+  samples = seq(1, length(t$Sample), length.out = 200)
+  c=1
+  for (s in samples) {
+    # populate the spline coeffients for this iteration of t of the names splineCoeffs_0_0....
+    for (a in 1:length(rateShiftsNe)-1){
+      for (b in seq(1, 4)){
+        splineCoeffs[a,b] = t[s, paste("splineCoeffs", a-1, b-1, sep="_")]
       }
-      I[s,] = interpolate_I_over_grid(rateShiftsNe, splineCoeffs, 1000, max(rateShiftsNe)/1000)$I
     }
-    # loop over all colums in I
-    for (j in seq(1,no_points,5)) {
-      # add the time and rate to the ne dataframe
-      ne = rbind(ne, data.frame(virus = virus,
-                                time=mrsi-j*max(rateShiftsNe)/1000*365,
-                                upper.5 = quantile(I[,j], 0.75),
-                                lower.5 = quantile(I[,j], 0.25),
-                                upper = quantile(I[,j], 0.975),
-                                lower = quantile(I[,j], 0.025),
-                                season=year))
-    }
+    I[c,] = interpolate_I_over_grid(rateShiftsNe, splineCoeffs, 1000, max(rateShiftsNe)/1000)$I
+    c=c+1
   }
+  # loop over all colums in I
+  for (j in seq(1,no_points,5)) {
+    # add the time and rate to the ne dataframe
+    ne = rbind(ne, data.frame(virus = virus,
+                              time=mrsi-j*max(rateShiftsNe)/1000*365,
+                              upper.5 = quantile(I[,j], 0.75),
+                              lower.5 = quantile(I[,j], 0.25),
+                              upper = quantile(I[,j], 0.975),
+                              lower = quantile(I[,j], 0.025),
+                              season=year))
+  }
+  # }
   
   
   
@@ -427,7 +451,22 @@ p <- ggplot(casesframe) +
   geom_ribbon(data=dynamics, aes(x = time, ymin = lower.5, ymax = upper.5, group=season, fill=virus)) +
   geom_ribbon(data=dynamics, aes(x = time, ymin = lower, ymax = upper, group=season, fill=virus), alpha = 0.5, color = NA) +
   # Add the cases over time
-  geom_line(aes(x = x, y = y/4000), color="black", linetype="dashed") +  # Fixed column reference with backticks
+  geom_line(aes(x = x, y = y/8000), color="black", linetype="dashed") +  # Fixed column reference with backticks
+  facet_grid(virus~.) +  # Fixed the facet_wrap formula
+  coord_cartesian(ylim = c(0, 1)) +  # Fixed the coord_cartesian formula
+  theme_minimal() + 
+  labs(x = "Date", y = "Reassortment Rate", title = "")+
+  scale_fill_manual(values=c("H1N1"=h1n1color, "H3N2"=h3n2color))
+# Plot the graph
+print(p)
+ggsave("./../../Figures/InfA_Prevalence.pdf", p, width = 9, height = 5)
+
+
+p <- ggplot(casesframe) + 
+  geom_ribbon(data=dynamics, aes(x = time, ymin = lower.5, ymax = upper.5, group=season, fill=virus)) +
+  geom_ribbon(data=dynamics, aes(x = time, ymin = lower, ymax = upper, group=season, fill=virus), alpha = 0.5, color = NA) +
+  # Add the cases over time
+  geom_line(aes(x = x, y = y/8000), color="black", linetype="dashed") +  # Fixed column reference with backticks
   facet_grid(virus~.) +  # Fixed the facet_wrap formula
   coord_cartesian(ylim = c(0, 1)) +  # Fixed the coord_cartesian formula
   theme_minimal() + 

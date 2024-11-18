@@ -57,12 +57,12 @@
             <stateNode id="sigma" spec="RealParameter" lower="0.25" value="1"/>
             <stateNode id="sigma2" spec="RealParameter" lower="0.25" value="1"/>
             <stateNode id="popSize" spec="RealParameter" value="1.0293"/>
-            <stateNode id="reassortmentRate" spec="RealParameter" value="0.1211"/>
+            <stateNode id="reassortmentRate" spec="RealParameter" lower="-10" value="0.1211"/>
 
             <stateNode id="logInfected" spec="RealParameter" value="1 1.01"/>
             <stateNode id="rateShifts" spec="RealParameter" value="insert_times"/>
             <stateNode id="recoveryRate" spec="RealParameter" value="1.0"/>
-            <stateNode id="InfectedToRho" spec="RealParameter" value="-8 -7"/>
+            <stateNode id="InfectedToRho" spec="RealParameter" lower="-10" value="-8 -7"/>
 
             <parameter id="clockRate.c" spec="parameter.RealParameter" lower="0.0" name="stateNode">insert_clock_rate</parameter>
             
@@ -243,7 +243,7 @@
                     </populationModel>
 
                     <timeVaryingReassortmentRates id="reassortmentDynamics" spec="coalre.dynamics.PiecewiseConstantReassortmentRates" reassortmentRate="@reassortmentRate">
-                        <rateShifts id="rateShifts2" spec="RealParameter" value="0 insert_EOS"/>
+                        <rateShifts id="rateShifts2" spec="RealParameter" value="insert_EOS"/>
                     </timeVaryingReassortmentRates>
                     <!--isconstant -->
                     
@@ -273,7 +273,10 @@
                         <infectedToRhoSpline id="rhoSpline" spec="coalre.dynamics.Spline" infectedIsNe="true" logInfected="@InfectedToRho" uninfectiousRate="@recoveryRate" gridPoints="1000">
                             <rateShifts id="rateShifts2" spec="RealParameter" value="insert_EOS"/>
                         </infectedToRhoSpline>
-                        <spline idref="spline"/>
+                        <spline id="casesSpline" spec="coalre.dynamics.Spline" infectedIsNe="true" uninfectiousRate="@recoveryRate" gridPoints="1000">
+                            <logInfected id="cases" spec="RealParameter" value="insert_cases_cases"/>
+                            <rateShifts id="rateShifts3" spec="RealParameter" value="insert_cases_time"/>
+                        </spline>
                     </timeVaryingReassortmentRates>
                     <!--isVariable -->
 
@@ -287,16 +290,13 @@
                     <distribution spec="Prior" x="@popSize">
                         <distr spec="beast.base.inference.distribution.OneOnX"/>
                     </distribution>
-
                     <!-- isconstant-->
-
-
                     <distribution spec="Prior">
                         <x spec="mascot.util.Difference" arg="@logInfected"/>
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma"/>
                     </distribution>
                     <distribution spec="Prior">
-                        <x spec="mascot.util.Difference" arg="@reassortmentRate"/>
+                        <x spec="coalre.dynamics.Difference" arg="@reassortmentRate" independentAfter="insert_independent_after"/>
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma2"/>
                     </distribution>
                     <distribution spec="Prior" x="@sigma">
@@ -330,7 +330,7 @@
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma"/>
                     </distribution>
                     <distribution spec="Prior">
-                        <x spec="mascot.util.Difference" arg="@InfectedToRho"/>
+                        <x spec="coalre.dynamics.Difference" arg="@InfectedToRho" independentAfter="insert_independent_after"/>
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma2"/>
                     </distribution>
                     <distribution spec="Prior" x="@sigma">
@@ -629,7 +629,7 @@
         </operator>
 
 
-        <operator spec="AddRemoveReassortment" network="@network" alpha="1.0" weight="20.0">
+        <operator spec="AddRemoveReassortment" network="@network" alpha="1.0" weight="5.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -640,7 +640,7 @@
             <segmentTree idref="seg8tree"/>
         </operator>
 
-        <operator spec="AddRemoveReassortmentCoalescent" coalescentWithReassortment="@networkPrior" network="@network" weight="30.0">
+        <operator spec="AddRemoveReassortmentCoalescent" coalescentWithReassortment="@networkPrior" network="@network" weight="50.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -674,7 +674,7 @@
             <segmentTree idref="seg8tree"/>
         </operator>
 
-        <operator id="NetworkScale" spec="NetworkScaleOperator" network="@network" weight="3.0" scaleFactor="0.8">
+        <operator id="NetworkScale" spec="NetworkScaleOperator" network="@network" weight="3.0" scaleFactor="0.999">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -685,7 +685,7 @@
             <segmentTree idref="seg8tree"/>
         </operator>
 
-        <operator id="NetworkScaleRootOnly" spec="NetworkScaleOperator" network="@network" scaleRootOnly="true" weight="3.0" scaleFactor="0.8">
+        <operator id="NetworkScaleRootOnly" spec="NetworkScaleOperator" network="@network" scaleRootOnly="true" weight="0.25" scaleFactor="0.99">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
