@@ -234,7 +234,7 @@
             </distribution>
 
             <distribution id="prior" spec="CompoundDistribution">
-                <distribution id="networkPrior" spec="CoalescentWithReassortment" maxHeightRatio="1.5" redFactor="0.1">
+                <distribution id="networkPrior" spec="CoalescentWithReassortment" maxHeightRatio="1.1" redFactor="0.01">
                     <networkIntervals spec="NetworkIntervals" network="@network"/>
 
                     <!-- isconstant-->
