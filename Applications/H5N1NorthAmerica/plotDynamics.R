@@ -8,6 +8,7 @@ rm(list=ls())
 # Set random seed for reproducibility
 set.seed(6465546)
 
+# function that redoes the spline interpolation that is directly done in CoalRe
 interpolate_I_over_grid <- function(rateShifts, splineCoeffs, gridPoints, dt) {
   # Initialize variables
   time <- numeric(gridPoints)
@@ -51,11 +52,11 @@ segments = c("HA", "NA", "MP", "NS", "NP", "PB1", "PB2", "PA")
 this.dir <- dirname(parent.frame(2)$ofile)
 setwd(this.dir)
 
-
-
 # get all tree files with rep0 in out
 tree.files = list.files("out", pattern="rep0.trees", full.names=T)
 # combine the tree file with the rep1 and rep2 using log combiner
+# this is commented out because it takes a long time, but has to be done once
+# TODO uncomment
 for (i in 1:length(tree.files)) {
   # system(
   #        paste("/Applications/BEAST\\ 2.7.6/bin/logcombiner -burnin 80 -log", tree.files[i],
@@ -65,7 +66,8 @@ for (i in 1:length(tree.files)) {
 }
 # get all the combined trees
 tree.files = list.files("out", pattern="combined.trees", full.names=T)
-# run them through the reassortmentRtaeOverTime app
+# run them through the  app to create the MCC network
+# TODO uncomment
 for (i in 1:length(tree.files)) {
   # system(
   #        paste("/Applications/BEAST\\ 2.7.6/bin/applauncher ReassortmentNetworkSummarizer",
@@ -94,21 +96,19 @@ for (i in 1:length(tree.files)) {
 }
 
 
-
-
-
-
 data = data.frame()
 
 burnin = 0.8
 
-# get all files ending in *varying.log files in out
+# get all files TODO: the file names should be replace with the variable ones
 t1 = read.table("out/H5N1_wgs_proportional.varying.rep0.log", header = TRUE, sep = "\t")
 t2 = read.table("out/H5N1_wgs_proportional.varying.rep1.log", header = TRUE, sep = "\t")
 t3 = read.table("out/H5N1_wgs_proportional.varying.rep1.log", header = TRUE, sep = "\t")
+
 # combined after 10% burnin
 t = rbind(t1[round(nrow(t1)*burnin):nrow(t1),], t2[round(nrow(t2)*burnin):nrow(t2),], t3[round(nrow(t3)*burnin):nrow(t3),])
 # read in the xml file xmls/H5N1_wgs.varying.rep0.xml
+# TODO change to the corresponding xml file
 xmlFile = readLines("xmls/H5N1_wgs_proportional.varying.rep0.xml")
 # look for the line that <stateNode id="rateShifts" spec="RealParameter" and get the values
 rateShifts = strsplit(xmlFile[grep("<stateNode id=\"rateShifts\" spec=\"RealParameter\"", xmlFile)], 
@@ -188,13 +188,14 @@ plot(p)
 ggsave("./../../Figures/H5N1_constant_dynamics.pdf", p, width = 9, height = 4)
 
 
-# read in the constant files
-t1 = read.table("out/H5N1_wgs_proportional.variable.rep0.log", header = TRUE, sep = "\t")
-t2 = read.table("out/H5N1_wgs_proportional.variable.rep1.log", header = TRUE, sep = "\t")
-t3 = read.table("out/H5N1_wgs_proportional.variable.rep2.log", header = TRUE, sep = "\t")
+# read in the constant files that are the equivalent from above TODO, these filenames should be the constant ones
+t1 = read.table("out/H5N1_wgs_proportional.constant.rep0.log", header = TRUE, sep = "\t")
+t2 = read.table("out/H5N1_wgs_proportional.constant.rep1.log", header = TRUE, sep = "\t")
+t3 = read.table("out/H5N1_wgs_proportional.constant.rep2.log", header = TRUE, sep = "\t")
 # combined after 10% burnin
 t = rbind(t1[round(nrow(t1)*burnin):nrow(t1),], t2[round(nrow(t2)*burnin):nrow(t2),], t3[round(nrow(t3)*burnin):nrow(t3),])
 # read in the xml file xmls/H5N1_wgs.varying.rep0.xml
+# TODO change to the corresponding xml file
 xmlFile = readLines("xmls/H5N1_wgs_proportional.constant.rep0.xml")
 # look for the line that <stateNode id="rateShifts" spec="RealParameter" and get the values
 rateShifts = strsplit(xmlFile[grep("<stateNode id=\"rateShifts\" spec=\"RealParameter\"", xmlFile)], 
