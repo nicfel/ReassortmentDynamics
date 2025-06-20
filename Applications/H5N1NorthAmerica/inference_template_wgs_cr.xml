@@ -339,7 +339,7 @@
 
 
         <!-- isinfectedSkyline-->
-        <operator id="migrationRatesScaler.s" spec="AdaptableOperatorSampler" weight="15.0">
+        <operator id="migrationRatesScaler.s" spec="AdaptableOperatorSampler" weight="3.0">
             <parameter idref="logNe"/>
             <operator id="AVMNOperator.Mascot" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="1.0">
                 <transformations id="AVMNSumTransform.Mascot" spec="operator.kernel.Transform$LogConstrainedSumTransform"/>
@@ -354,17 +354,20 @@
             </operator>
             <operator id="SkylineNe.camel.ScalerX.t" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@logNe" scaleFactor="0.5" weight="1.0"/>
         </operator>
-        <operator id="InfectedToRhoScaler.s:" spec="AdaptableOperatorSampler" weight="15.0">
+        <operator id="InfectedToRhoScaler.s:" spec="AdaptableOperatorSampler" weight="3.0">
             <parameter idref="InfectedToRho"/>
             <operator idref="AVMNOperator.Mascot"/>
             <operator id="InfectedToRho.ScalerX.t" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@InfectedToRho" scaleFactor="0.5" weight="1.0"/>
         </operator>
-        <operator id="InfectedToRhoScaler1.s:" spec="AdaptableOperatorSampler" weight="5.0">
+
+        <operator id="InfectedToRho.ScalerX.t2" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@InfectedToRho" scaleFactor="0.5" weight="3.0"/>
+
+        <operator id="InfectedToRhoScaler1.s:" spec="AdaptableOperatorSampler" weight="3.0">
             <parameter idref="sigma"/>
             <operator idref="AVMNOperator.Mascot"/>
             <operator id="InfectedToRho.ScalerX1.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@sigma" scaleFactor="0.5" weight="1.0"/>
         </operator>
-        <operator id="InfectedToRhoScaler2.s:" spec="AdaptableOperatorSampler" weight="5.0">
+        <operator id="InfectedToRhoScaler2.s:" spec="AdaptableOperatorSampler" weight="3.0">
             <parameter idref="sigma2"/>
             <operator idref="AVMNOperator.Mascot"/>
             <operator id="InfectedToRho.ScalerX2.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@sigma2" scaleFactor="0.5" weight="1.0"/>
@@ -586,8 +589,9 @@
         </operator>
 
 
+        <!-- <operator id="ClockRateScaler.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@clockRate.c" scaleFactor="0.5" weight="3.0"/> -->
 
-        <operator spec="AddRemoveReassortmentCoalescent" coalescentWithReassortment="@networkPrior" network="@network" weight="10.0" divertOneSegment="false">
+        <operator spec="AddRemoveReassortment" network="@network" weight="30.0" alpha="1">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -598,7 +602,7 @@
             <segmentTree idref="seg8tree"/>
         </operator>
 
-        <operator spec="AddRemoveReassortmentCoalescent" coalescentWithReassortment="@networkPrior" network="@network" weight="10.0" divertOneSegment="true">
+        <operator spec="AddRemoveReassortmentCoalescent" coalescentWithReassortment="@networkPrior" network="@network" weight="100.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -620,7 +624,7 @@
             <segmentTree idref="seg8tree"/>
         </operator>
 
-        <operator spec="DivertSegmentOperator" network="@network" weight="10.0" divertOneSegment="true" lambda="2.0">
+        <!-- <operator spec="DivertSegmentOperator" network="@network" weight="50.0" divertOneSegment="true" lambda="2.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -629,9 +633,9 @@
             <segmentTree idref="seg6tree"/>
             <segmentTree idref="seg7tree"/>
             <segmentTree idref="seg8tree"/>
-        </operator>
+        </operator> -->
 
-        <operator spec="UniformNetworkNodeHeightOperator" network="@network" weight="30.0">
+        <operator spec="UniformNetworkNodeHeightOperator" network="@network" weight="5.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -664,7 +668,7 @@
             <segmentTree idref="seg8tree"/>
         </operator>
 
-        <operator spec="NetworkExchange" network="@network" isNarrow="false" weight="10.0">
+        <operator id="NetworkScaleIndependently" scaleIntervalsIndependently="true" spec="NetworkScaleOperator" network="@network" weight="10.0" scaleFactor="0.8">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -675,7 +679,19 @@
             <segmentTree idref="seg8tree"/>
         </operator>
 
-        <operator spec="NetworkExchange" network="@network" isNarrow="true" weight="10.0">
+
+        <operator spec="NetworkExchange" network="@network" isNarrow="false" weight="15.0">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+        <operator spec="NetworkExchange" network="@network" isNarrow="true" weight="15.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
