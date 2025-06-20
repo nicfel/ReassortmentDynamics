@@ -1,0 +1,271 @@
+library(stringr)
+library(seqinr)
+# Clear workspace
+rm(list=ls())
+
+# Set random seed for reproducibility
+set.seed(6465546)
+
+# Set the directory to the directory of the file
+this.dir <- dirname(parent.frame(2)$ofile)
+setwd(this.dir)
+file.remove(list.files("./xmls3seg/", pattern="*.xml", full.names=TRUE))
+
+# get all fasta files in data
+fasta_files = list.files("./data/", pattern="*.fasta", full.names=TRUE)
+# remove all fasta files that do not contain HA
+fasta_files = fasta_files[grep("HA", fasta_files)]
+# read HPAI_LPAI.csv
+clade_file = read.csv("./HPAI_LPAI.csv", stringsAsFactors = FALSE, header = TRUE)
+for (clade in unique(clade_file$status)){
+  # replace all ' in isolates
+  clade_file$taxa = gsub("'", "", clade_file$taxa)
+  isolates = clade_file[clade_file$status == clade, "taxa"]
+  
+  # read in all fasta files in data
+  fasta = list.files("./data/", pattern="*.fasta", full.names=TRUE)
+  for (fastafile in fasta){
+    # read in the fasta file
+    fasta1 = seqinr::read.fasta(file = fastafile, seqtype = "DNA")
+    # remove all sequences not in isolates
+    fasta1 = fasta1[names(fasta1) %in% isolates]
+    # write the fasta file to the xmls3seg directory
+    seqinr::write.fasta(sequences = fasta1, 
+                        names = names(fasta1), 
+                        file.out = paste0("./xmls3seg/", clade, "_", basename(fastafile)))
+  }
+  
+  
+  for (fastafile in fasta_files){
+
+    # collect the dates as the last group after splitting on | 
+    dates = sapply(isolates, function(x) strsplit(x, "\\|")[[1]][[3]])
+    min = min(as.Date(dates))
+    max = max(as.Date(dates))
+    first_intro = as.numeric(max-min)/365+0.5
+  
+    # define the root height for Ne and reassortment variant rates 
+    # this is the time of the first introduction
+    rateshiftvals = c(seq(0, first_intro, length.out=15), seq(first_intro, 30, length.out=6))
+    rateshiftvals = unique(rateshiftvals)
+    rateshiftvals2 = rateshiftvals
+    
+    
+    
+    # get the filename as everything before the first _
+    filename_base = strsplit(basename(fastafile), "_")[[1]][1]
+    
+    # read in the log file to get the network height
+    filename = paste(filename_base, ".dependent", sep="")
+    # build an inference xml files
+    f <- file(sprintf('xmls3seg/%s_%s.rep0.xml',clade, filename), 'w')
+    # Open the template file
+    template <- file('../H5N1NorthAmerica/inference_template_wgs_cr_3seg.xml', 'r')
+    
+    base=""
+    
+    while (length(line <- readLines(template, n = 1)) > 0) {
+      if (grepl('insert_name', line)) {
+        writeLines(gsub('insert_name', sprintf('%s', filename), line), f)
+      } else if (grepl('insert_tips', line)) {
+        # write the name of each tip, adding a , for all but the last one to the end <taxon spec="Taxon" id="t1"/>
+        for (i in seq(1, length(isolates))) {
+          writeLines(sprintf('\t\t<taxon spec="Taxon" id="%s"/>', isolates[i]), f)
+        }
+      }else if (grepl('insert_clock_rate', line)){
+        writeLines(gsub('insert_clock_rate', '0.0035', line), f)
+      }else if (grepl('<f idref="reassortmentRate"/>', line)){
+        writeLines(line, f)
+      }else if (grepl('<log idref="reassortmentRate"/>', line)){
+        writeLines(line, f)
+      }else if (grepl('insert_seg1', line)){
+        writeLines(gsub('insert_seg1', paste(clade,filename_base,"HA", sep="_"), line), f)
+      }else if (grepl('insert_seg2', line)){
+        writeLines(gsub('insert_seg2', paste(clade,filename_base,"NA", sep="_"), line), f)
+      }else if (grepl('insert_seg3', line)){
+        writeLines(gsub('insert_seg3', paste(clade,filename_base,"MP", sep="_"), line), f)
+  
+      } else if (grepl('insert_times', line)) {
+        writeLines(gsub('insert_times', paste(rateshiftvals, collapse=' '), line), f)
+      } else if (grepl('insert_ratetimes', line)) {
+        writeLines(gsub('insert_ratetimes', paste(rateshiftvals2, collapse=' '), line), f)
+        
+        # mask all the non isConstant entries, i.e. isinfectedSkyline
+      } else if (grepl('isconstant-->', line)) {
+        writeLines(gsub('isconstant-->', '', line), f)
+      } else if (grepl('<!--isconstant', line)){
+        writeLines(gsub('<!--isconstant', '', line), f)
+      # } else if (grepl('isinfectedSkyline-->', line)) {
+      #   writeLines(gsub('isinfectedSkyline-->', '', line), f)
+      # } else if (grepl('<!--isinfectedSkyline', line)){
+      #   writeLines(gsub('<!--isinfectedSkyline', '', line), f)      
+      # } else if (grepl('isNeSkyline-->', line)) {
+      #   writeLines(gsub('isNeSkyline-->', '', line), f)
+      # } else if (grepl('<!--isNeSkyline', line)){
+      #   writeLines(gsub('<!--isNeSkyline', '', line), f)  
+      } else if (grepl('isISkyline-->', line)) {
+        writeLines(gsub('isISkyline-->', '', line), f)
+      } else if (grepl('<!--isISkyline', line)){
+        writeLines(gsub('<!--isISkyline', '', line), f)
+        
+      } else if (grepl('isVariable-->', line)) {
+        writeLines(gsub('isVariable-->', '', line), f)
+      } else if (grepl('<!--isVariable', line)){
+        writeLines(gsub('<!--isVariable', '', line), f)  
+        
+      } else if (grepl('insert_heights', line)) {
+        # write the date of each isolate
+        value=''
+        dates=c()
+        for (i in seq(1, length(isolates))) {
+          date = strsplit(isolates[i], "\\|")[[1]][[3]]
+          dates=c(dates, as.Date(date))
+          if (i == length(isolates)) {
+            value = paste(value, isolates[i], '=', date, sep = '')
+          } else {
+            value = paste(value, isolates[i], '=', date, sep = '')
+            value = paste(value, ',', sep = '')
+          }
+        }  
+        writeLines(gsub('insert_heights', value, line), f)   
+      }else if (grepl('insert_EOS', line)){
+        # get the most recent sampling time
+        EOS = max(as.numeric(strsplit(isolates[length(isolates)], "\\|")[[1]][[3]]))
+        # compute EOS minus the august first of the previous year
+        EOS = max(dates) - min(dates)
+        #make 3 points between 0 and EOS/365
+        points = seq(0, EOS/365, length.out=10)
+        writeLines(gsub('insert_EOS', paste(rateshiftvals2, collapse = " "), line), f)
+      }else if (grepl('insert_weights', line)) {
+        # get the length of both alignments
+        seq1 = seqinr::read.fasta(file = paste("./data/",filename_base, "_HA.fasta", sep=""), seqtype = "DNA")
+        seq2 = seqinr::read.fasta(file = paste("./data/",filename_base, "_NA.fasta", sep=""), seqtype = "DNA")
+        seq3 = seqinr::read.fasta(file = paste("./data/",filename_base, "_MP.fasta", sep=""), seqtype = "DNA")
+  
+        #get the number of characters in the first segment
+        sequence_length_seg1 <- nchar(getSequence(seq1[[1]], as.string = TRUE))
+        sequence_length_seg2 <- nchar(getSequence(seq2[[1]], as.string = TRUE))
+        sequence_length_seg3 <- nchar(getSequence(seq3[[1]], as.string = TRUE))
+        writeLines(gsub('insert_weights', paste(sequence_length_seg1, sequence_length_seg2,
+                                                sequence_length_seg3), line), f)
+      }else if (grepl('insert_independent_after', line)) {
+        writeLines(gsub('insert_independent_after', 15, line), f)
+      } else {
+        writeLines(line, f)
+      }
+    }
+    close(f)
+    close(template)
+    
+    # make a second xml where the .trees is replaced by .infected
+    filename = paste(filename_base, ".independent", sep="")
+    f <- file(sprintf('xmls3seg/%s_%s.rep0.xml',clade, filename), 'w')
+    # Open the template file
+    template <- file('../H5N1NorthAmerica/inference_template_wgs_cr_3seg.xml', 'r')
+    while (length(line <- readLines(template, n = 1)) > 0) {
+      if (grepl('insert_name', line)) {
+        writeLines(gsub('insert_name', sprintf('%s', filename), line), f)
+      } else if (grepl('insert_tips', line)) {
+        # write the name of each tip, adding a , for all but the last one to the end <taxon spec="Taxon" id="t1"/>
+        for (i in seq(1, length(isolates))) {
+          writeLines(sprintf('\t\t<taxon spec="Taxon" id="%s"/>', isolates[i]), f)
+        }
+      }else if (grepl('insert_clock_rate', line)){
+        writeLines(gsub('insert_clock_rate', '0.0035', line), f)
+  
+      }else if (grepl('insert_seg1', line)){
+        writeLines(gsub('insert_seg1', paste(clade,filename_base,"HA", sep="_"), line), f)
+      }else if (grepl('insert_seg2', line)){
+        writeLines(gsub('insert_seg2', paste(clade,filename_base,"NA", sep="_"), line), f)
+      }else if (grepl('insert_seg3', line)){
+        writeLines(gsub('insert_seg3', paste(clade,filename_base,"MP", sep="_"), line), f)
+  
+      } else if (grepl('insert_times', line)) {
+        writeLines(gsub('insert_times', paste(rateshiftvals, collapse=' '), line), f)
+      }else if (grepl('insert_EOS', line)){
+        # get the most recent sampling time
+        writeLines(gsub('insert_EOS', paste(rateshiftvals2[1:length(rateshiftvals2)], collapse = " "), line), f)
+      } else if (grepl('insert_times', line)) {
+        writeLines(gsub('insert_times', paste(rateshiftvals, collapse=' '), line), f)
+      } else if (grepl('insert_ratetimes', line)) {
+        writeLines(gsub('insert_ratetimes', paste(rateshiftvals2, collapse=' '), line), f)
+      } else if (grepl('x="@reassortmentRate"',line)){
+        # skip 1 line
+        line <- readLines(template, n = 1)
+        
+        # write the following lines
+        #<distribution spec="Prior">
+        #  <x spec="coalre.dynamics.LogDifference" arg="@InfectedToRho" rateShift="@rateShifts"/>
+        #    <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="1.0"/>
+        writeLines('\t\t\t\t\t<distribution spec="Prior">', f)
+        writeLines('\t\t\t\t\t\t<x spec="coalre.dynamics.LogDifference" arg="@reassortmentRate"/>', f)
+        writeLines('\t\t\t\t\t\t<distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="1.0"/>', f)
+      
+      # mask all the non isConstant entries, i.e. isinfectedSkyline
+      } else if (grepl('isconstant-->', line)) {
+        writeLines(gsub('isconstant-->', '', line), f)
+      } else if (grepl('<!--isconstant', line)){
+        writeLines(gsub('<!--isconstant', '', line), f)
+      } else if (grepl('isNeSkyline-->', line)) {
+        writeLines(gsub('isNeSkyline-->', '', line), f)
+      } else if (grepl('<!--isNeSkyline', line)){
+        writeLines(gsub('<!--isNeSkyline', '', line), f)
+  
+      # } else if (grepl('isISkyline-->', line)) {
+      #   writeLines(gsub('isISkyline-->', '', line), f)
+      # } else if (grepl('<!--isISkyline', line)){
+      #   writeLines(gsub('<!--isISkyline', '', line), f)
+  
+      # } else if (grepl('isinfectedSkyline-->', line)) {
+      #   writeLines(gsub('isinfectedSkyline-->', '', line), f)
+      # } else if (grepl('<!--isinfectedSkyline', line)){
+      #   writeLines(gsub('<!--isinfectedSkyline', '', line), f)
+  
+  
+      } else if (grepl('insert_heights', line)) {
+        # write the height of each tip using heights seperated by a = and , between
+        value=''
+        for (i in seq(1, length(isolates))) {
+          date = strsplit(isolates[i], "\\|")[[1]][[3]]
+  
+          if (i == length(isolates)) {
+            value = paste(value, isolates[i], '=', date, sep = '')
+          } else {
+            value = paste(value, isolates[i], '=', date, sep = '')
+            value = paste(value, ',', sep = '')
+          }
+        }
+        writeLines(gsub('insert_heights', value, line), f)
+      }else if (grepl('insert_independent_after', line)) {
+        writeLines(gsub('insert_independent_after', 15, line), f)
+        
+      }else if (grepl('insert_weights', line)) {
+        # get the length of both alignments
+        # get the length of both alignments
+        seq1 = seqinr::read.fasta(file = paste("./data/",filename_base, "_HA.fasta", sep=""), seqtype = "DNA")
+        seq2 = seqinr::read.fasta(file = paste("./data/",filename_base, "_NA.fasta", sep=""), seqtype = "DNA")
+        seq3 = seqinr::read.fasta(file = paste("./data/",filename_base, "_MP.fasta", sep=""), seqtype = "DNA")
+  
+        #get the number of characters in the first segment
+        sequence_length_seg1 <- nchar(getSequence(seq1[[1]], as.string = TRUE))
+        sequence_length_seg2 <- nchar(getSequence(seq2[[1]], as.string = TRUE))
+        sequence_length_seg3 <- nchar(getSequence(seq3[[1]], as.string = TRUE))
+  
+        writeLines(gsub('insert_weights', paste(sequence_length_seg1, sequence_length_seg2,
+                                                sequence_length_seg3), line), f)      } else {
+        writeLines(line, f)
+      }
+    }
+    close(f)
+    close(template)
+  }
+}
+
+# make two copies of the rep0 files into rep1 and rep2
+files = list.files("xmls3seg", pattern="*.rep0.xml", full.names=TRUE)
+for (file in files) {
+  file.copy(file, gsub("rep0", "rep1", file))
+  file.copy(file, gsub("rep0", "rep2", file))
+}
+
+

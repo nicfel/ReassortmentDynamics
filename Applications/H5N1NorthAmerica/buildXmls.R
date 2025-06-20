@@ -13,7 +13,6 @@ setwd(this.dir)
 # delete all *wgs*.xml files in xmls
 file.remove(list.files("./xmls/", pattern="*.xml", full.names=TRUE))
 
-
 # get all fasta files in data
 fasta_files = list.files("./data/", pattern="*.fasta", full.names=TRUE)
 # remove all fasta files that do not contain HA
