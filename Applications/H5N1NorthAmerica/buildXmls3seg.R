@@ -16,7 +16,7 @@ fasta_files = list.files("./data/", pattern="*.fasta", full.names=TRUE)
 # remove all fasta files that do not contain HA
 fasta_files = fasta_files[grep("HA", fasta_files)]
 # read HPAI_LPAI.csv
-clade_file = read.csv("./HPAI_LPAI.csv", stringsAsFactors = FALSE, header = TRUE)
+clade_file = read.csv("./tables/HPAI_LPAI.csv", stringsAsFactors = FALSE, header = TRUE)
 for (clade in unique(clade_file$status)){
   # replace all ' in isolates
   clade_file$taxa = gsub("'", "", clade_file$taxa)
@@ -46,7 +46,7 @@ for (clade in unique(clade_file$status)){
   
     # define the root height for Ne and reassortment variant rates 
     # this is the time of the first introduction
-    rateshiftvals = c(seq(0, first_intro, length.out=15), seq(first_intro, 30, length.out=6))
+    rateshiftvals = c(seq(0,  ceiling(first_intro+1), length.out=51), seq(ceiling(first_intro+1),  30, length.out=6), 1000)
     rateshiftvals = unique(rateshiftvals)
     rateshiftvals2 = rateshiftvals
     

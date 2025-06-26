@@ -24,7 +24,7 @@ mrsi = as.Date(c("2025-02-17", "2024-08-14"))
 # define the segment order
 segment_order = c("HA", "NA", "MP", "NS", "NP", "PB1", "PB2", "PA")
 
-rate_shift_str = '0 0.270743639921722 0.541487279843444 0.812230919765166 1.08297455968689 1.35371819960861 1.62446183953033 1.89520547945205 2.16594911937378 2.4366927592955 2.70743639921722 2.97818003913894 3.24892367906067 3.51966731898239 3.79041095890411 9.03232876712329 14.2742465753425 19.5161643835616 24.7580821917808 30'
+rate_shift_str = '0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 3 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4 4.1 4.2 4.3 4.4 4.5 4.6 4.7 4.8 4.9 5 10 15 20 25 30 300'
 rate_shifts = as.numeric(strsplit(rate_shift_str, " ")[[1]])
 
 
@@ -35,7 +35,8 @@ lineage_colors <- c(
 )
 
 clades = c("HPAI", "LPAI")
-rerun = TRUE
+rerun = F
+
 
 data = data.frame();
 for (isIndependent in c(TRUE, FALSE)){
@@ -72,13 +73,17 @@ for (isIndependent in c(TRUE, FALSE)){
   }
   c = 1
   for (log_file in list(hpai_log_file, lpai_log_file)){
+    print(c)
     # get the clade from the log file name
     for (i in seq(1, length(rate_shifts))){
       # get the reassortment rate at this time point
       rate = log_file[, paste0("InfectedToRho.", i)]
+      ne = log_file[, paste0("logNe.", i)]
+      
       if (!isIndependent){
-        rate = rate+log_file[, paste0("logNe.", i)]
+        rate = rate+ne
       }
+      
       # get all the quantile from 0.05 to 1.0
       for (q in seq(0.05, 1.0, 0.05)){
         upper = quantile(rate, 1-q/2)
@@ -96,28 +101,23 @@ for (isIndependent in c(TRUE, FALSE)){
           clade = clades[c],
           rate = "reassortment"
         ))
-      }
-      for (i in seq(1, length(rate_shifts))){
-        # get the reassortment rate at this time point
-        rate = log_file[, paste0("logNe.", i)]
-        # get all the quantile from 0.05 to 1.0
-        for (q in seq(0.05, 1.0, 0.05)){
-          upper = quantile(rate, 1-q/2)
-          lower = quantile(rate, q/2)
-          if (q==1){
-            lower = lower+0.03
-            upper = upper-0.03
-          }
-          reassortment_rate = rbind(reassortment_rate, data.frame(
-            time = mrsi[c]-rate_shifts[i]*365,
-            quantile = q,
-            upper = upper,
-            lower = lower,
-            isIndependent = isIndependent,
-            clade = clades[c],
-            rate = "Ne"
-          ))
+        upper = quantile(ne, 1-q/2)
+        lower = quantile(ne, q/2)
+        if (q==1){
+          lower = lower+0.03
+          upper = upper-0.03
         }
+        
+        reassortment_rate = rbind(reassortment_rate, data.frame(
+          time = mrsi[c]-rate_shifts[i]*365,
+          quantile = q,
+          upper = upper,
+          lower = lower,
+          isIndependent = isIndependent,
+          clade = clades[c],
+          rate = "Ne"
+        ))
+        
       }
     }
     
@@ -134,6 +134,8 @@ y_off = 0.5
 reassortment_rate$alpha = 0.2
 # for q==1 set it to 1
 reassortment_rate$alpha[reassortment_rate$quantile == 1] = 1.0
+
+
 
 for (ind in c(TRUE, FALSE)){
   # plot the reassortment rate over time
@@ -159,6 +161,36 @@ for (ind in c(TRUE, FALSE)){
     ggsave(p, filename="../../Figures/h5n1_hpai_lpai_reassortment_rate_dependent.pdf", width=6, height=2.5)
   }
   
+  
+  # read in positive cases
+  cases = read.csv("./tables/APHIS_WildBirdAvianInfluenzaSurveillanceDashboard.csv")
+  cases$date = as.Date(cases$Date_Collected, format="%Y-%m-%d")
+  
+  # loop over all days
+  min_date = min(cases$date)
+  max_date = max(cases$date)
+  smoothed_case_data = data.frame()
+  for (d in seq(min_date+14, max_date-14, by="day")){
+    # get all instances within that time window
+    window = cases[cases$date >= d-7 & cases$date <= d+7, ]
+    # get how many instances of Final_IAV are Detected
+    total_AIV = sum(window$Final_IAV == "Detected", na.rm=TRUE)
+    # get the number of high path cases 
+    total_HPAI = sum(window$Final_Pathogenicity == "High Path AI", na.rm=TRUE)
+    smoothed_case_data = rbind(smoothed_case_data, data.frame(
+      date = d,
+      positivity = (total_AIV-total_HPAI)/nrow(window),
+      type = "LPAI"
+    ))
+    smoothed_case_data = rbind(smoothed_case_data, data.frame(
+      date = d,
+      positivity = total_HPAI/nrow(window),
+      type = "HPAI"
+    ))
+  }
+  smoothed_case_data$date = as.Date(smoothed_case_data$date, format="%Y-%m-%d")
+  
+  
   # plot the Ne over time, for both lineages
   p = ggplot(reassortment_rate[reassortment_rate$isIndependent == ind & reassortment_rate$rate == "Ne", ], 
              aes(x=time, y=upper, group=interaction(clade, quantile), fill=clade)) +
@@ -167,11 +199,9 @@ for (ind in c(TRUE, FALSE)){
     scale_alpha(guide=F) +
     # scale_fill_manual(values=methods_colors, name="Method") +
     scale_fill_manual(values=lineage_colors, name="Clade") +
-    # mark the minimum and maximum time for each independent
-    # label the y axis as exp(y)
-    # scale_y_continuous(breaks=c(log(0.05), log(0.1), log(0.2), log(0.4), log(0.8), log(1.6), log(3.2)), 
-    #                    labels=c("0.05", "0.1", "0.2", "0.4", "0.8", "1.6", "3.2")) +
-    # scale_fill_OkabeIto()+
+    geom_line(data=smoothed_case_data, aes(x=date, y=positivity*12-1, color=type, group=type), method=NA, size=0.5) +
+    scale_color_manual(values=c("HPAI"="#E41A1C", "LPAI"="#377EB8"), name="Type") +
+    
     xlab("Time") +
     ylab("Effective population size") +
     theme_minimal()

@@ -30,12 +30,10 @@ for (fastafile in fasta_files){
 
   # define the root height for Ne and reassortment variant rates 
   # this is the time of the first introduction
-  rateshiftvals = c(seq(0, first_intro, length.out=15), seq(first_intro, 30, length.out=6))
+  rateshiftvals = c(seq(0,  ceiling(first_intro+1), length.out=51), seq(ceiling(first_intro+1),  30, length.out=6), 1000)
   rateshiftvals = unique(rateshiftvals)
   rateshiftvals2 = rateshiftvals
-  
-  
-  
+
   # get the filename as everything before the first _
   filename_base = strsplit(basename(fastafile), "_")[[1]][1]
   

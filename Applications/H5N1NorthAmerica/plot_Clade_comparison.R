@@ -7,6 +7,7 @@ library(treeio)
 library(ggnewscale)
 library(cowplot)
 
+
 # Clear workspace
 rm(list=ls())
 
@@ -24,7 +25,7 @@ mrsi = as.Date("2025-02-17")
 # define the segment order
 segment_order = c("HA", "NA", "MP", "NS", "NP", "PB1", "PB2", "PA")
 
-rate_shift_str = '0 0.270743639921722 0.541487279843444 0.812230919765166 1.08297455968689 1.35371819960861 1.62446183953033 1.89520547945205 2.16594911937378 2.4366927592955 2.70743639921722 2.97818003913894 3.24892367906067 3.51966731898239 3.79041095890411 9.03232876712329 14.2742465753425 19.5161643835616 24.7580821917808 30'
+rate_shift_str = '0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 3 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4 4.1 4.2 4.3 4.4 4.5 4.6 4.7 4.8 4.9 5 10 15 20 25 30 1000'
 rate_shifts = as.numeric(strsplit(rate_shift_str, " ")[[1]])
 
 # 1) Methods (3 distinct hues from Set1)
@@ -55,8 +56,8 @@ lineage_colors <- c(
   unknown  = "#4DAF4A"  # green
 )
 
-clades = c("B3.13")
-rerun = FALSE
+clades = c("B3.13", "D1.1")
+rerun = F
 
 data = data.frame();
 for (isIndependent in c(TRUE, FALSE)){
@@ -67,31 +68,34 @@ for (isIndependent in c(TRUE, FALSE)){
       # run log combined on the independent trees
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
                    "-burnin 50 -log ./out/450.independent.rep*.trees -o ./combined/450.independent.trees"))
+      
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize",
+                   "-burnin 0 -followSegment 0  -positions MCC  ./combined/450.independent.trees ./combined/450.independent.tree"))
+      da
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
                    "-burnin 50 -log ./out/450.independent.rep*.log -o ./combined/450.independent.log"))
-  
-      # read in the file with the clade heights ./combined/450.independent.trees and remove all instances of '
-      # from the file
-      system(paste0("sed \"s/'//g\" ./combined/450.independent.trees > ./combined/450.independent.cleaned.trees"))
+      # system(paste0("sed \"s/'//g\" ./combined/450.independent.trees > ./combined/450.independent.cleaned.trees"))
   
   
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/450.independent.cleaned.trees -clade cow_clade.csv -out ./combined/clade_heights_independent.tsv"))
+                   "-burnin 0 -tree ./combined/450.independent.trees -clade ./tables/cow_clade.csv -out ./combined/clade_heights_independent.tsv"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/450.independent.cleaned.trees -clade d11.csv -out ./combined/clade_d11_heights_independent.tsv"))
+                   "-burnin 0 -tree ./combined/450.independent.trees -clade ./tables/d11.csv -out ./combined/clade_d11_heights_independent.tsv"))
+      
+      
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile",
-                   "-burnin 0 -followSegment 0 -tree ./combined/450.independent.cleaned.trees -clade HPAI_LPAI.csv -out ./combined/450.independent.clades.trees"))
+                   "-burnin 0 -followSegment 0 -tree ./combined/450.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/450.independent.clades.trees"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile",
-                   "-burnin 0 -followSegment 0 -printTable true -tree ./combined/450.independent.cleaned.trees -clade HPAI_LPAI.csv -out ./combined/450.independent.clades.tsv"))
+                   "-burnin 0 -followSegment 0 -printTable true -tree ./combined/450.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/450.independent.clades.tsv"))
   
-  
+      
       for (s in seq(1,length(segment_order), 1)){
         # get the segment name
         segment = segment_order[s]
         # run the applauncher to mark the clades for this segment
         system(paste0("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile ",
                      "-burnin 0 -followSegment ", s-1, " -printSegment ", s-1,
-                     " -tree ./combined/450.independent.cleaned.trees -clade HPAI_LPAI.csv -out ./combined/450.independent.", segment, ".trees"))
+                     " -tree ./combined/450.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/450.independent.", segment, ".trees"))
         system(paste0("/Applications/BEAST\\ 2.7.7/bin/treeannotator ",
                      "-burnin 0 -height keep ./combined/450.independent.", segment, ".trees  ./combined/450.independent.", segment, ".tree"))
       }
@@ -110,12 +114,11 @@ for (isIndependent in c(TRUE, FALSE)){
                    "-burnin 50 -log ./out/450.dependent.rep*.trees -o ./combined/450.dependent.trees"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
                    "-burnin 50 -log ./out/450.dependent.rep*.log -o ./combined/450.dependent.log"))
-      system(paste0("sed \"s/'//g\" ./combined/450.dependent.trees > ./combined/450.dependent.cleaned.trees"))
-  
+
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/450.dependent.cleaned.trees -clade cow_clade.csv -out ./combined/clade_heights_dependent.tsv"))
+                   "-burnin 0 -tree ./combined/450.dependent.trees -clade ./tables/cow_clade.csv -out ./combined/clade_heights_dependent.tsv"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/450.dependent.cleaned.trees -clade d11.csv -out ./combined/clade_d11_heights_dependent.tsv"))
+                   "-burnin 0 -tree ./combined/450.dependent.trees -clade ./tables/d11.csv -out ./combined/clade_d11_heights_dependent.tsv"))
   
   
       for (s in seq(1,length(segment_order), 1)){
@@ -124,7 +127,7 @@ for (isIndependent in c(TRUE, FALSE)){
         # run the applauncher to mark the clades for this segment
         system(paste0("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile ",
                      "-burnin 0 -followSegment ", s-1, " -printSegment ", s-1,
-                     " -tree ./combined/450.dependent.cleaned.trees -clade HPAI_LPAI.csv -out ./combined/450.dependent.", segment, ".trees"))
+                     " -tree ./combined/450.dependent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/450.dependent.", segment, ".trees"))
         system(paste0("/Applications/BEAST\\ 2.7.7/bin/treeannotator ",
                      "-burnin 0 -height keep ./combined/450.dependent.", segment, ".trees  ./combined/450.dependent.", segment, ".tree"))
       }
@@ -153,8 +156,14 @@ for (isIndependent in c(TRUE, FALSE)){
     no_event_probs = c()
     for (l in seq(1, min(nrow(clade_heights), nrow(log_file)), 1)) {
       # get the timings of the HA segment
-      min_time = clade_heights[l, 2]
-      max_time = clade_heights[l, 3]
+      if (cl == "B3.13"){
+        min_time = clade_heights[l, 2]
+        max_time = clade_heights[l, 3]
+      }else if (cl == "D1.1"){
+        min_time = clade_heights[l, 2]
+        max_time = clade_heights[l, 3]
+      }
+      
     
       first_interval = which(rate_shifts <= min_time)[length(which(rate_shifts <= min_time))]
       last_interval = which(rate_shifts <= max_time)[length(which(rate_shifts <= max_time))]
@@ -212,6 +221,8 @@ for (isIndependent in c(TRUE, FALSE)){
     if (!isIndependent){
       rate = rate+log_file[, paste0("logNe.", i)]
     }
+    # rate = log_file[, paste0("logNe.", i)]
+    
     # get all the quantile from 0.05 to 1.0
     for (q in seq(0.05, 1.0, 0.05)){
       upper = quantile(rate, 1-q/2)
@@ -229,9 +240,36 @@ for (isIndependent in c(TRUE, FALSE)){
       ))
     }
   }
-  
-  
 }
+
+# read in positive cases
+cases = read.csv("./tables/APHIS_WildBirdAvianInfluenzaSurveillanceDashboard.csv")
+cases$date = as.Date(cases$Date_Collected, format="%Y-%m-%d")
+
+# loop over all days
+min_date = min(cases$date)
+max_date = max(cases$date)
+smoothed_case_data = data.frame()
+for (d in seq(min_date+23, max_date-23, by="day")){
+  # get all instances within that time window
+  window = cases[cases$date >= d-23 & cases$date <= d+23, ]
+  # get how many instances of Final_IAV are Detected
+  total_AIV = sum(window$Final_IAV == "Detected", na.rm=TRUE)
+  # get the number of high path cases
+  total_HPAI = sum(window$Final_H5 == "Detected" &  window$Final_Pathogenicity == "High Path AI", na.rm=TRUE)
+  smoothed_case_data = rbind(smoothed_case_data, data.frame(
+    date = d,
+    positivity = (total_AIV-total_HPAI)/nrow(window),
+    type = "LPAI"
+  ))
+  smoothed_case_data = rbind(smoothed_case_data, data.frame(
+    date = d,
+    positivity = total_HPAI/nrow(window),
+    type = "HPAI"
+  ))
+}
+smoothed_case_data$date = as.Date(smoothed_case_data$date, format="%Y-%m-%d")
+
 # calculate the mean min time and mean max time for data for each independent
 data_mean = aggregate(cbind(min_time, max_time, no_event_prob, mean_rate) ~ isIndependent, data=data, FUN=median)
 # get the upper and lower quantiles for min_time and max_time
@@ -239,32 +277,33 @@ data_time = data.frame()
 for (isIndependent in c(TRUE, FALSE)){
   for (cl in clades){
     # get all the quantile from 0.05 to 1.0
-    vals = data[ data$isIndependent == isIndependent & data$clade == cl,"min_time"]
-    for (q in seq(0.05, 1.0, 0.05)){
-      upper = quantile(vals, 1-q/2)
-      lower = quantile(vals, q/2)
+    vals_start = data[ data$isIndependent == isIndependent & data$clade == cl,"min_time"]
+    vals_end = data[ data$isIndependent == isIndependent & data$clade == cl,"max_time"]
+    # for (q in seq(0.05, 1.0, 0.05)){
+      # upper = quantile(vals, 1-q/2)
+      # lower = quantile(vals, q/2)
       data_time = rbind(data_time, data.frame(
         quantile = q,
-        upper = upper,
-        lower = lower,
+        upper = median(vals_end),
+        lower = median(vals_start),
         isIndependent = isIndependent,
-        bound= lower,
-        clade = cl
+        # bound= lower,
+        clade = cl,
+        y_clade_off = ifelse(cl=="B3.13", 1, 0)
       ))
-    }
-    vals = data[ data$isIndependent == isIndependent & data$clade == cl,"max_time"]
-    for (q in seq(0.05, 1.0, 0.01)){
-      upper = quantile(vals, 1-q/2)
-      lower = quantile(vals, q/2)
-      data_time = rbind(data_time, data.frame(
-        quantile = q,
-        upper = upper,
-        lower = lower,
-        isIndependent = isIndependent,
-        bound= upper,
-        clade = cl
-      ))
-    }
+    # }
+    # for (q in seq(0.05, 1.0, 0.01)){
+    #   upper = quantile(vals, 1-q/2)
+    #   lower = quantile(vals, q/2)
+    #   data_time = rbind(data_time, data.frame(
+    #     quantile = q,
+    #     upper = upper,
+    #     lower = lower,
+    #     isIndependent = isIndependent,
+    #     bound= upper,
+    #     clade = cl
+    #   ))
+    # }
   }
   
 }
@@ -272,8 +311,6 @@ for (isIndependent in c(TRUE, FALSE)){
 
 # start new variable, independent rho
 reassortment_rate$method = "independent rho"
-reassortment_rate$method[reassortment_rate$isIndependent == FALSE] = "dependent rho(t)"
-
 
 # 1) Methods (3 distinct hues from Set1)
 methods_colors <- c(
@@ -292,32 +329,50 @@ data_time$method[data_mean$isIndependent == FALSE] = "dependent rho(t)"
 data_mean$method = "independent rho"
 data_mean$method[data_mean$isIndependent == FALSE] = "dependent rho(t)"
 
-y_val = log(3)
+y_val = log(1)
 y_off = 0.5
 
 for (ind in c(TRUE, FALSE)){
+  # # read in the low path Ne in ./tables/LPAI_PB2_population_size.csv"
+  # lpai_ne = read.csv("./tables/LPAI_PB2_population_size.csv")
+  # lpai_ne$time = as.Date(lpai_ne$time)
+  # lpai_ne$method=NA
+  # lpai_ne$quantile=NA
+  
   # plot the reassortment rate over time
+  smoothed_case_data$method=NA
+  smoothed_case_data$quantile=NA
   p = ggplot(reassortment_rate[reassortment_rate$isIndependent == ind, ], aes(x=mrsi-time*365, y=upper, group=quantile, fill=method)) +
     geom_ribbon(aes(ymin=lower, ymax=upper, alpha=alpha), fill="grey29") +
-    coord_cartesian(xlim=c(as.Date("2021-09-01"), mrsi), ylim=c(-4, 2)) +
+    coord_cartesian(xlim=c(as.Date("2021-09-01"), mrsi), ylim=c(-4, log(5))) +
     scale_alpha(guide=F) +
-    geom_segment(data=data_time, aes(x=mrsi-lower*365, xend=mrsi-upper*365, y=y_val+quantile*y_off, yend=y_val+quantile*y_off, group=quantile, color=clade)) +
+    geom_segment(data=data_time, aes(x=mrsi-lower*365, xend=mrsi-upper*365, y=y_val+y_clade_off, yend=y_val+quantile*y_clade_off, group=quantile, color=clade), size=2) +
     scale_fill_manual(values=methods_colors, name="Method") +
-    scale_color_manual(values=clade_colors, name="Clade") +
-    # mark the minimum and maximum time for each independent
-    # label the y axis as exp(y)
+    scale_color_manual(values=clade_colors, name="Median Emergence Time of Clade:") +
     scale_y_continuous(breaks=c(log(0.05), log(0.1), log(0.2), log(0.4), log(0.8), log(1.6), log(3.2)), 
                        labels=c("0.05", "0.1", "0.2", "0.4", "0.8", "1.6", "3.2")) +
-    # scale_fill_OkabeIto()+
+    theme_minimal() + 
+    theme(legend.position = "top")+
     xlab("Time") +
-    ylab("Reassortment rate") +
-    theme_minimal() 
+    ylab("Reassortment rate") 
   plot(p)
   if (ind){
     ggsave(p, filename="../../Figures/h5n1_reassortment_rate_independent.pdf", width=6, height=2.5)
   }else{
     ggsave(p, filename="../../Figures/h5n1_reassortment_rate_dependent.pdf", width=6, height=2.5)
   }
+  
+  # 
+  # p = ggplot() +
+  #   geom_line() +
+  #   scale_color_manual(values=lineage_colors) +
+  #   xlab("Date") +
+  #   ylab("Weekly positivity rate") +
+  #   scale_x_date()+
+  #   theme_minimal() +
+  #   coord_cartesian(xlim=c(as.Date("2021-09-01"), max_date)) 
+  # plot(p)
+  
 
   # calculat the mean and 95% quantiles of the no_event_prob
   data_mean_no_event_prob = aggregate(no_event_prob ~ isIndependent, data=data, FUN=median)
@@ -498,33 +553,35 @@ for (ind in c(TRUE, FALSE)){
     ) +
     facet_grid(Lineage ~ ., scales = "free", switch = "y")
   plot(p)
-
+  
   # for all events on HPAI lineages count how often each segment moved the other direction
   co_rea = data.frame()
   for (i in seq(min(hpai_events$Sample), max(hpai_events$Sample))){
     # get the number of events for this sample and lineage
-    l="HPAI"
-    n_events = hpai_events[hpai_events$Sample == i & hpai_events$Lineage == l, ]
-    for (e in event_types){
-      # check if lineages is in e, otherwise, next
-      if (!grepl(l, e)){
-        next
-      }
-      # get the number of events for this sample and lineage
-      n_events_e = n_events[n_events$Event == e, ]
-      
-      # loop over all segments not HA
-      for (j in seq(2, length(segment_order))){
-        # count how often i is in n_events_e$Segments
-        count = sum(grepl(j-1, n_events_e$Segments))
-        # add to the distribution
-        co_rea = rbind(co_rea, data.frame(
-          Sample = i,
-          Lineage = l,
-          Event = e,
-          n_events = count,
-          segment = segment_order[j]
-        ))
+    for (l in lineage_type){
+    
+      n_events = hpai_events[hpai_events$Sample == i & hpai_events$Lineage == l, ]
+      for (e in event_types){
+        # check if lineages is in e, otherwise, next
+        if (!grepl(l, e)){
+          next
+        }
+        # get the number of events for this sample and lineage
+        n_events_e = n_events[n_events$Event == e, ]
+        
+        # loop over all segments not HA
+        for (j in seq(2, length(segment_order))){
+          # count how often i is in n_events_e$Segments
+          count = sum(grepl(j-1, n_events_e$Segments))
+          # add to the distribution
+          co_rea = rbind(co_rea, data.frame(
+            Sample = i,
+            Lineage = l,
+            Event = e,
+            n_events = count,
+            segment = segment_order[j]
+          ))
+        }
       }
     }
   }
@@ -562,7 +619,7 @@ for (ind in c(TRUE, FALSE)){
   co_rea_quantiles$evname[co_rea_quantiles$Event == "HPAI+LPAI"] = "LPAI"
   
   # plot the posterior distribution of the number of events for each segment, facetting by event
-  p_co = ggplot(co_rea_quantiles, aes(x=segment, y=mean, color=evname)) +
+  p_co = ggplot(co_rea_quantiles[co_rea_quantiles$Lineage=="HPAI", ], aes(x=segment, y=mean, color=evname)) +
     geom_point(position=position_dodge(-0.2)) +
     geom_errorbar(aes(ymin=lower, ymax=upper), position=position_dodge(-0.2), width=0.2) +
     xlab("")+
@@ -625,52 +682,58 @@ for (ind in c(TRUE, FALSE)){
         for (s in unique(n_events$Sample)){
           # get the events for this sample
           n = nrow(n_events_e[n_events_e$Sample == s, ])
-          d = nrow(n_events[n_events$Sample == s, ])
-          sum_events = c(sum_events, n/d)
+          # d = nrow(n_events[n_events$Sample == s, ])
+          sum_events = c(sum_events, n)
         }
         
         
-        # # get the 95% HPD
-        # for (q in seq(0.05, 1.0, 0.05)){
-        #   # get the quantiles
-        moving_avg = rbind(moving_avg, data.frame(
-          Time = i,
-          Lineage = l,
-          lower = mean(sum_events),
-          upper = mean(sum_events),
-          
-          # lower = quantile(sum_events, q/2),
-          # upper = quantile(sum_events, 1-q/2),
-          q = 1,
-          type=e
-        ))
-        # }
+        # get the 95% HPD
+        for (q in seq(0.05, 1.0, 0.05)){
+          # get the quantiles
+          moving_avg = rbind(moving_avg, data.frame(
+            Time = i,
+            Lineage = l,
+            # lower = mean(sum_events),
+            # upper = mean(sum_events),
+            lower = quantile(sum_events, q/2),
+            upper = quantile(sum_events, 1-q/2),
+            q = q,
+            type=e
+          ))
+        }
       }
     }
   }
   
   # rename types to events between HPAI and LPAI and events only involving HPAI lineages
-  moving_avg$type[moving_avg$type == "HPAI+LPAI"] = "Events between HPAI and LPAI lineages"
-  moving_avg$type[moving_avg$type == "HPAI"] = "Events only involving HPAI lineages"
-  moving_avg$type[moving_avg$type == "LPAI"] = "Events only involving LPAI lineages"
+  # moving_avg$type[moving_avg$type == "HPAI+LPAI"] = "Events between HPAI and LPAI lineages"
+  # moving_avg$type[moving_avg$type == "HPAI"] = "Events only involving HPAI lineages"
+  # moving_avg$type[moving_avg$type == "LPAI"] = "Events only involving LPAI lineages"
   
   moving_avg$Time = as.Date(moving_avg$Time)
   
-  dat = moving_avg[moving_avg$Lineage=="HPAI" &
-                     moving_avg$type == "All events involving HPAI offsprings", ]
+  dat = moving_avg[moving_avg$Lineage=="HPAI", ]
   dat2 = moving_avg[moving_avg$Lineage=="HPAI" &
-                      moving_avg$type == "Events between HPAI and LPAI lineages" &
-                      moving_avg$q==1, ]
+                      moving_avg$type == "Events between HPAI and LPAI lineages",]
+  
   
   # plot the moving average
-  p3 = ggplot(data = dat, aes(x=Time, y=upper, group=q)) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.2, fill="#546E7A") +
+  p3 = ggplot(data = dat, aes(x=Time, y=upper, group=interaction(q, type))) +
+    geom_ribbon(aes(ymin=lower, ymax=upper, fill=type), alpha=0.2) +
+    scale_fill_manual(values=c("HPAI"="#E41A1C", "HPAI+LPAI"="#377EB8"), name="Type") +
+    
     geom_line(data=dat2, aes(x=Time, y=upper*20), color="#377EB8", size=0.5) +
     scale_y_continuous(sec.axis = sec_axis(~./20, name="average proportion of\nevents with LPAI lineages")) +
+    new_scale_color()+
+    geom_line(data=smoothed_case_data, aes(x=date, y=positivity*20, color=type, group=type), method=NA, size=0.5) +
+    scale_color_manual(values=c("HPAI"="#E41A1C", "LPAI"="#377EB8"), name="Type") +
     ylab("\n moving average of\nthe number of reassortment events") +
     coord_cartesian(ylim=c(0, 20)) +
     theme_minimal() 
   plot(p3)
+  
+  
+  
   
   p_prob <- plot_grid(p1, p2, ncol=2, labels=c('B', 'C'), align="h", axis="l", rel_heights=c(1, 1))
   plot(p_prob)
@@ -690,6 +753,7 @@ for (ind in c(TRUE, FALSE)){
     geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.2, fill="#546E7A") +
     ylab("180 day moving averge of\nthe number of reassortment events\nwith HPAI offspring") +
     theme_minimal() + 
+    new_scale_color() +
     ylim(0, 20) +
     facet_grid(Lineage~type)
   plot(p)
@@ -704,8 +768,6 @@ for (ind in c(TRUE, FALSE)){
   plot(p)
   
   ggsave(p, filename="../../Figures/h5n1_LPAI_moving_average.pdf", width=8, height=6)
-  
-  
   
   lineage_colors <- c(
     HPAI    = "#E41A1C",  # red
@@ -815,7 +877,6 @@ for (ind in c(TRUE, FALSE)){
     ggsave(combined_trees,filename = "../../Figures/h5n1_all_segment_trees_dependent.pdf",
            width = 12, height = 8)
   }
-
 }
 
 
