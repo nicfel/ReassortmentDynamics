@@ -11,8 +11,9 @@ this.dir <- dirname(parent.frame(2)$ofile)
 setwd(this.dir)
 file.remove(list.files("./xmls3seg/", pattern="*.xml", full.names=TRUE))
 
-# get all fasta files in data
-fasta_files = list.files("./data/", pattern="*.fasta", full.names=TRUE)
+# get all fasta files in data that start with HLHxNx and end in fasta
+fasta_files = list.files("./data/", pattern="^HLHxNx.*\\.fasta$", full.names=TRUE)
+
 # remove all fasta files that do not contain HA
 fasta_files = fasta_files[grep("HA", fasta_files)]
 # read HPAI_LPAI.csv
@@ -20,20 +21,29 @@ clade_file = read.csv("./tables/HPAI_LPAI.csv", stringsAsFactors = FALSE, header
 for (clade in unique(clade_file$status)){
   # replace all ' in isolates
   clade_file$taxa = gsub("'", "", clade_file$taxa)
-  isolates = clade_file[clade_file$status == clade, "taxa"]
+  
+  clade_file$taxa = gsub("'", "", clade_file$taxa)
+  isolates = clade_file[clade_file$status == "HPAI", "taxa"]
+  
   
   # read in all fasta files in data
-  fasta = list.files("./data/", pattern="*.fasta", full.names=TRUE)
+  fasta = list.files("./data/", pattern="^HLHxNx.*\\.fasta$", full.names=TRUE)
   for (fastafile in fasta){
     # read in the fasta file
     fasta1 = seqinr::read.fasta(file = fastafile, seqtype = "DNA")
     # remove all sequences not in isolates
-    fasta1 = fasta1[names(fasta1) %in% isolates]
-    # write the fasta file to the xmls3seg directory
+    if (clade=="HPAI"){
+      fasta1 = fasta1[names(fasta1) %in% isolates]
+    }else{
+      fasta1 = fasta1[!names(fasta1) %in% isolates]
+    }
+    
     seqinr::write.fasta(sequences = fasta1, 
                         names = names(fasta1), 
                         file.out = paste0("./xmls3seg/", clade, "_", basename(fastafile)))
+    
   }
+  isolates = names(fasta1)
   
   
   for (fastafile in fasta_files){
@@ -46,7 +56,7 @@ for (clade in unique(clade_file$status)){
   
     # define the root height for Ne and reassortment variant rates 
     # this is the time of the first introduction
-    rateshiftvals = c(seq(0,  ceiling(first_intro+1), length.out=51), seq(ceiling(first_intro+1),  30, length.out=6), 1000)
+    rateshiftvals = c(seq(0,  ceiling(first_intro+1), length.out=51), seq(ceiling(first_intro+1),  10, length.out=6), 1000, 5000)
     rateshiftvals = unique(rateshiftvals)
     rateshiftvals2 = rateshiftvals
     
@@ -149,7 +159,10 @@ for (clade in unique(clade_file$status)){
         writeLines(gsub('insert_weights', paste(sequence_length_seg1, sequence_length_seg2,
                                                 sequence_length_seg3), line), f)
       }else if (grepl('insert_independent_after', line)) {
-        writeLines(gsub('insert_independent_after', 15, line), f)
+        writeLines(gsub('insert_independent_after', length(rateshiftvals)-1, line), f)
+      }else if (grepl('insert_double_discount', line)){
+        writeLines(gsub('insert_double_discount', 'true', line), f)
+        
       } else {
         writeLines(line, f)
       }
@@ -237,7 +250,10 @@ for (clade in unique(clade_file$status)){
         }
         writeLines(gsub('insert_heights', value, line), f)
       }else if (grepl('insert_independent_after', line)) {
-        writeLines(gsub('insert_independent_after', 15, line), f)
+        writeLines(gsub('insert_independent_after', length(rateshiftvals)-1, line), f)
+      }else if (grepl('insert_double_discount', line)){
+        writeLines(gsub('insert_double_discount', 'false', line), f)
+        
         
       }else if (grepl('insert_weights', line)) {
         # get the length of both alignments
@@ -267,5 +283,4 @@ for (file in files) {
   file.copy(file, gsub("rep0", "rep1", file))
   file.copy(file, gsub("rep0", "rep2", file))
 }
-
 

@@ -21,6 +21,8 @@ setwd(this.dir)
 reassortment_rate = data.frame()
 # define the mrsi
 mrsi = as.Date("2025-02-17")
+mrsi_hpai = mrsi
+mrsi_lpai = as.Date("2024-08-22")
 
 # define the segment order
 segment_order = c("HA", "NA", "MP", "NS", "NP", "PB1", "PB2", "PA")
@@ -57,7 +59,7 @@ lineage_colors <- c(
 )
 
 clades = c("B3.13", "D1.1")
-rerun = F
+rerun = T
 
 data = data.frame();
 for (isIndependent in c(TRUE, FALSE)){
@@ -67,70 +69,103 @@ for (isIndependent in c(TRUE, FALSE)){
     if (rerun){
       # run log combined on the independent trees
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/450.independent.rep*.trees -o ./combined/450.independent.trees"))
+                   "-burnin 50 -log ./out/HLHxNx.independent.rep*.trees -o ./combined/HLHxNx.independent.trees"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
+                   "-burnin 50 -log ./out/HPAI_HLHxNx.independent.rep*.trees -o ./combined/HPAI_HLHxNx.independent.trees"))
+      
+      system(paste0("sed \"s/'//g\" ./combined/HLHxNx.independent.trees > ./combined/HLHxNx.independent.cleaned.trees"))
+      system(paste0("sed \"s/'//g\" ./combined/HPAI_HLHxNx.independent.trees > ./combined/HPAI_HLHxNx.independent.cleaned.trees"))
+      # replace the old file with the cleaned one
+      file.rename("./combined/HLHxNx.independent.cleaned.trees", "./combined/HLHxNx.independent.trees")
+      file.rename("./combined/HPAI_HLHxNx.independent.cleaned.trees", "./combined/HPAI_HLHxNx.independent.trees")
       
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize",
-                   "-burnin 0 -followSegment 0  -positions MCC  ./combined/450.independent.trees ./combined/450.independent.tree"))
-      da
+                   "-burnin 0 -followSegment 0  -positions MCC  ./combined/HLHxNx.independent.trees ./combined/HLHxNx.independent.tree"))
+      
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize",
+                   "-burnin 0 -followSegment 0  -positions MCC  ./combined/HPAI_HLHxNx.independent.trees ./combined/HPAI_HLHxNx.independent.tree"))
+
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/450.independent.rep*.log -o ./combined/450.independent.log"))
-      # system(paste0("sed \"s/'//g\" ./combined/450.independent.trees > ./combined/450.independent.cleaned.trees"))
-  
-  
+                   "-burnin 50 -log ./out/HLHxNx.independent.rep*.log -o ./combined/HLHxNx.independent.log"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
+                   "-burnin 50 -log ./out/LPAI_HLHxNx.independent.rep*.log -o ./combined/LPAI_HLHxNx.independent.log"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
+                   "-burnin 50 -log ./out/HPAI_HLHxNx.independent.rep*.log -o ./combined/HPAI_HLHxNx.independent.log"))
+      
+      
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/450.independent.trees -clade ./tables/cow_clade.csv -out ./combined/clade_heights_independent.tsv"))
+                   "-burnin 0 -tree ./combined/HPAI_HLHxNx.independent.trees -clade ./tables/cow_clade.csv -out ./combined/clade_heights_independent.tsv"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/450.independent.trees -clade ./tables/d11.csv -out ./combined/clade_d11_heights_independent.tsv"))
+                   "-burnin 0 -tree ./combined/HPAI_HLHxNx.independent.trees -clade ./tables/d11.csv -out ./combined/clade_d11_heights_independent.tsv"))
       
       
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile",
-                   "-burnin 0 -followSegment 0 -tree ./combined/450.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/450.independent.clades.trees"))
+                   "-burnin 0 -followSegment 0 -tree ./combined/HLHxNx.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.independent.clades.trees"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile",
-                   "-burnin 0 -followSegment 0 -printTable true -tree ./combined/450.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/450.independent.clades.tsv"))
+                   "-burnin 0 -followSegment 0 -printTable true -tree ./combined/HLHxNx.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.independent.clades.tsv"))
   
       
-      for (s in seq(1,length(segment_order), 1)){
-        # get the segment name
-        segment = segment_order[s]
-        # run the applauncher to mark the clades for this segment
-        system(paste0("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile ",
-                     "-burnin 0 -followSegment ", s-1, " -printSegment ", s-1,
-                     " -tree ./combined/450.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/450.independent.", segment, ".trees"))
-        system(paste0("/Applications/BEAST\\ 2.7.7/bin/treeannotator ",
-                     "-burnin 0 -height keep ./combined/450.independent.", segment, ".trees  ./combined/450.independent.", segment, ".tree"))
-      }
+      # for (s in seq(1,length(segment_order), 1)){
+      #   # get the segment name
+      #   segment = segment_order[s]
+      #   # run the applauncher to mark the clades for this segment
+      #   system(paste0("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile ",
+      #                "-burnin 0 -followSegment ", s-1, " -printSegment ", s-1,
+      #                " -tree ./combined/HLHxNx.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.independent.", segment, ".trees"))
+      #   system(paste0("/Applications/BEAST\\ 2.7.7/bin/treeannotator ",
+      #                "-burnin 0 -height keep ./combined/HLHxNx.independent.", segment, ".trees  ./combined/HLHxNx.independent.", segment, ".tree"))
+      # }
     }
     
     # Read in the clade heights
     clade_cow_heights <- read.csv("./combined/clade_heights_independent.tsv", sep="\t")
     clade_d11_heights <- read.csv("./combined/clade_d11_heights_independent.tsv", sep="\t")
     
-    # read in the log file for 450
-    log_file <- read.csv("./combined/450.independent.log", sep="\t")
+    # read in the log file for HLHxNx
+    log_file <- read.csv("./combined/HLHxNx.independent.log", sep="\t")
+    log_file_lpai <- read.csv("./combined/LPAI_HLHxNx.independent.log", sep="\t")
+    log_file_hpai <- read.csv("./combined/HPAI_HLHxNx.independent.log", sep="\t")
   }else{
     
     if (rerun){
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/450.dependent.rep*.trees -o ./combined/450.dependent.trees"))
+                   "-burnin 50 -log ./out/HLHxNx.dependent.rep*.trees -o ./combined/HLHxNx.dependent.trees"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/450.dependent.rep*.log -o ./combined/450.dependent.log"))
+                   "-burnin 50 -log ./out/HPAI_HLHxNx.dependent.rep*.trees -o ./combined/HPAI_HLHxNx.dependent.trees"))
+      
+      system(paste0("sed \"s/'//g\" ./combined/HLHxNx.dependent.trees > ./combined/HLHxNx.dependent.cleaned.trees"))
+      system(paste0("sed \"s/'//g\" ./combined/HPAI_HLHxNx.dependent.trees > ./combined/HPAI_HLHxNx.dependent.cleaned.trees"))
+      # replace the old file with the cleaned one
+      file.rename("./combined/HLHxNx.dependent.cleaned.trees", "./combined/HLHxNx.dependent.trees")
+      file.rename("./combined/HPAI_HLHxNx.dependent.cleaned.trees", "./combined/HPAI_HLHxNx.dependent.trees")
+      
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize",
+                   "-burnin 0 -followSegment 0  -positions MCC  ./combined/HPAI_HLHxNx.dependent.trees ./combined/HPAI_HLHxNx.dependent.tree"))
+      
+      
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
+                   "-burnin 50 -log ./out/HLHxNx.dependent.rep*.log -o ./combined/HLHxNx.dependent.log"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
+                   "-burnin 50 -log ./out/LPAI_HLHxNx.dependent.rep*.log -o ./combined/LPAI_HLHxNx.dependent.log"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
+                   "-burnin 50 -log ./out/HPAI_HLHxNx.dependent.rep*.log -o ./combined/HPAI_HLHxNx.dependent.log"))
+      
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
+                   "-burnin 0 -tree ./combined/HPAI_HLHxNx.dependent.trees -clade ./tables/cow_clade.csv -out ./combined/clade_heights_dependent.tsv"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
+                   "-burnin 0 -tree ./combined/HPAI_HLHxNx.dependent.trees -clade ./tables/d11.csv -out ./combined/clade_d11_heights_dependent.tsv"))
+  
 
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/450.dependent.trees -clade ./tables/cow_clade.csv -out ./combined/clade_heights_dependent.tsv"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/450.dependent.trees -clade ./tables/d11.csv -out ./combined/clade_d11_heights_dependent.tsv"))
-  
-  
-      for (s in seq(1,length(segment_order), 1)){
-        # get the segment name
-        segment = segment_order[s]
-        # run the applauncher to mark the clades for this segment
-        system(paste0("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile ",
-                     "-burnin 0 -followSegment ", s-1, " -printSegment ", s-1,
-                     " -tree ./combined/450.dependent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/450.dependent.", segment, ".trees"))
-        system(paste0("/Applications/BEAST\\ 2.7.7/bin/treeannotator ",
-                     "-burnin 0 -height keep ./combined/450.dependent.", segment, ".trees  ./combined/450.dependent.", segment, ".tree"))
-      }
+      # for (s in seq(1,length(segment_order), 1)){
+      #   # get the segment name
+      #   segment = segment_order[s]
+      #   # run the applauncher to mark the clades for this segment
+      #   system(paste0("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile ",
+      #                "-burnin 0 -followSegment ", s-1, " -printSegment ", s-1,
+      #                " -tree ./combined/HLHxNx.dependent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.dependent.", segment, ".trees"))
+      #   system(paste0("/Applications/BEAST\\ 2.7.7/bin/treeannotator ",
+      #                "-burnin 0 -height keep ./combined/HLHxNx.dependent.", segment, ".trees  ./combined/HLHxNx.dependent.", segment, ".tree"))
+      # }
     }
     
     
@@ -138,8 +173,10 @@ for (isIndependent in c(TRUE, FALSE)){
     clade_cow_heights <- read.csv("./combined/clade_heights_dependent.tsv", sep="\t")
     clade_d11_heights <- read.csv("./combined/clade_d11_heights_dependent.tsv", sep="\t")
     
-    # read in the log file for 450
-    log_file <- read.csv("./combined/450.dependent.log", sep="\t")
+    # read in the log file for HLHxNx
+    log_file <- read.csv("./combined/HLHxNx.dependent.log", sep="\t")
+    log_file_lpai <- read.csv("./combined/LPAI_HLHxNx.dependent.log", sep="\t")
+    log_file_hpai <- read.csv("./combined/HPAI_HLHxNx.dependent.log", sep="\t")
   }
         
   for (cl in clades){
@@ -149,8 +186,7 @@ for (isIndependent in c(TRUE, FALSE)){
     }else if (cl == "D1.1"){
       clade_heights <- clade_d11_heights
     }
-    clade_heights <- clade_heights[seq(ceiling(nrow(clade_heights) * 0.1), nrow(clade_heights)), ]
-    log_file <- log_file[seq(ceiling(nrow(log_file) * 0.1), nrow(log_file)), ]
+
     # define the rate shifts values
     #loop over the posterior
     no_event_probs = c()
@@ -215,29 +251,42 @@ for (isIndependent in c(TRUE, FALSE)){
     }
   }
     
-  for (i in seq(1, length(rate_shifts))){
-    # get the reassortment rate at this time point
-    rate = log_file[, paste0("InfectedToRho.", i)]
-    if (!isIndependent){
-      rate = rate+log_file[, paste0("logNe.", i)]
-    }
-    # rate = log_file[, paste0("logNe.", i)]
-    
-    # get all the quantile from 0.05 to 1.0
-    for (q in seq(0.05, 1.0, 0.05)){
-      upper = quantile(rate, 1-q/2)
-      lower = quantile(rate, q/2)
-      if (q==1){
-        lower = lower+0.03
-        upper = upper-0.03
+  
+  # put your 3 data.frames into a named list
+  df_list <- list(
+    both = log_file,
+    hpai = log_file_hpai,
+    lpai = log_file_lpai
+  )
+
+  for (df_name in names(df_list)) {
+    lf <- df_list[[df_name]]
+    # choose the appropriate mrsi vector
+    mrsi_tmp <- if (df_name == "lpai") mrsi_lpai else mrsi
+    for (i in seq(1, length(rate_shifts))){
+      # get the reassortment rate at this time point
+      rate = lf[, paste0("InfectedToRho.", i)]
+      if (!isIndependent){
+        rate = rate+lf[, paste0("logNe.", i)]
       }
-      reassortment_rate = rbind(reassortment_rate, data.frame(
-        time = rate_shifts[i],
-        quantile = q,
-        upper = upper,
-        lower = lower,
-        isIndependent = isIndependent
-      ))
+
+      # get all the quantile from 0.05 to 1.0
+      for (q in seq(0.05, 1.0, 0.05)){
+        upper = quantile(rate, 1-q/2)
+        lower = quantile(rate, q/2)
+        if (q==1){
+          lower = lower+0.03
+          upper = upper-0.03
+        }
+        reassortment_rate = rbind(reassortment_rate, data.frame(
+          time = mrsi_tmp - rate_shifts[i]*365,
+          quantile = q,
+          upper = upper,
+          lower = lower,
+          isIndependent = isIndependent,
+          name = df_name
+        ))
+      }
     }
   }
 }
@@ -329,8 +378,8 @@ data_time$method[data_mean$isIndependent == FALSE] = "dependent rho(t)"
 data_mean$method = "independent rho"
 data_mean$method[data_mean$isIndependent == FALSE] = "dependent rho(t)"
 
-y_val = log(1)
-y_off = 0.5
+y_val = log(0.03)
+y_off = 0.2
 
 for (ind in c(TRUE, FALSE)){
   # # read in the low path Ne in ./tables/LPAI_PB2_population_size.csv"
@@ -342,13 +391,24 @@ for (ind in c(TRUE, FALSE)){
   # plot the reassortment rate over time
   smoothed_case_data$method=NA
   smoothed_case_data$quantile=NA
-  p = ggplot(reassortment_rate[reassortment_rate$isIndependent == ind, ], aes(x=mrsi-time*365, y=upper, group=quantile, fill=method)) +
-    geom_ribbon(aes(ymin=lower, ymax=upper, alpha=alpha), fill="grey29") +
+  lineage_colors <- c(
+    hpai    = "#E41A1C",  # red
+    lpai    = "#377EB8",  # blue
+    both  = "#4DAF4A"  # green
+  )
+  data_time$name=NA
+  smoothed_case_data$name =NA
+  p = ggplot(reassortment_rate[reassortment_rate$isIndependent == ind, ], aes(x=time, y=upper, group=interaction(quantile, name), fill=name)) +
+    geom_ribbon(aes(ymin=lower, ymax=upper, alpha=alpha)) +
     coord_cartesian(xlim=c(as.Date("2021-09-01"), mrsi), ylim=c(-4, log(5))) +
     scale_alpha(guide=F) +
-    geom_segment(data=data_time, aes(x=mrsi-lower*365, xend=mrsi-upper*365, y=y_val+y_clade_off, yend=y_val+quantile*y_clade_off, group=quantile, color=clade), size=2) +
-    scale_fill_manual(values=methods_colors, name="Method") +
+    geom_segment(data=data_time, aes(x=mrsi-lower*365, xend=mrsi-upper*365, y=y_val+y_clade_off*y_off, yend=y_val+quantile*y_clade_off*y_off, group=quantile, color=clade), size=2) +
+    scale_fill_manual(values=lineage_colors, name="Dataset") +
     scale_color_manual(values=clade_colors, name="Median Emergence Time of Clade:") +
+    new_scale_color()+
+    geom_line(data=smoothed_case_data, aes(x=date, y=log(positivity), color=type, group=type), method=NA, size=0.5) +
+    scale_color_manual(values=c("HPAI"="#E41A1C", "LPAI"="#377EB8"), name="Type") +
+    
     scale_y_continuous(breaks=c(log(0.05), log(0.1), log(0.2), log(0.4), log(0.8), log(1.6), log(3.2)), 
                        labels=c("0.05", "0.1", "0.2", "0.4", "0.8", "1.6", "3.2")) +
     theme_minimal() + 
@@ -361,7 +421,6 @@ for (ind in c(TRUE, FALSE)){
   }else{
     ggsave(p, filename="../../Figures/h5n1_reassortment_rate_dependent.pdf", width=6, height=2.5)
   }
-  
   # 
   # p = ggplot() +
   #   geom_line() +
@@ -372,8 +431,6 @@ for (ind in c(TRUE, FALSE)){
   #   theme_minimal() +
   #   coord_cartesian(xlim=c(as.Date("2021-09-01"), max_date)) 
   # plot(p)
-  
-
   # calculat the mean and 95% quantiles of the no_event_prob
   data_mean_no_event_prob = aggregate(no_event_prob ~ isIndependent, data=data, FUN=median)
   data_mean_no_event_prob$lower = aggregate(no_event_prob ~ isIndependent, data=data, FUN=function(x) quantile(x, 0.025))$no_event_prob
@@ -383,30 +440,26 @@ for (ind in c(TRUE, FALSE)){
   label_stats <- data_mean_no_event_prob[data_mean_no_event_prob$isIndependent == ind, ]
   
   p1 = ggplot(data[data$isIndependent == ind, ]) +
-    geom_violin(aes(x=1,y=no_event_prob), alpha=1, fill="grey90") +
-    ylab("Probability of\nat least one reassortment") +
+    geom_boxplot(aes(x=clade,y=no_event_prob, fill=clade), alpha=1) +
+    scale_color_manual(values=clade_colors, name="Clade") +
+    scale_fill_manual(values=clade_colors, name="Clade") +
+    ylab("Probability of\nat least one reassortment event") +
     # remove everything from the x axis
     xlab("") +
     # Add text annotation for median and 95% quantile
-    annotate(
-      "text",
-      x = 1,
-      y = label_stats$no_event_prob,
-      label = sprintf("%.2f (%.2f, %.2f)", 
-                      label_stats$no_event_prob, 
-                      label_stats$lower, 
-                      label_stats$upper),
-      size = 3.5,
-      hjust = 0.5,
-      vjust = 0
-    ) +
-    theme_minimal() +
-    theme(
-      axis.text.x = element_blank(),
-      axis.ticks.x = element_blank(),
-      axis.title.x = element_blank(),
-      axis.line.x = element_blank(),
-    ) 
+    # annotate(
+    #   "text",
+    #   x = 1,
+    #   y = label_stats$no_event_prob,
+    #   label = sprintf("%.2f (%.2f, %.2f)", 
+    #                   label_stats$no_event_prob, 
+    #                   label_stats$lower, 
+    #                   label_stats$upper),
+    #   size = 3.5,
+    #   hjust = 0.5,
+    #   vjust = 0
+    # ) +
+    theme_minimal() 
   
   p2 = ggplot(data[data$isIndependent == ind, ])+
     geom_point(aes(x=mrsi-max_time*365, y=no_event_prob))+
@@ -435,11 +488,11 @@ for (ind in c(TRUE, FALSE)){
   
 
   
-  # read in ./combined/450.independent.HA.tree
+  # read in ./combined/HLHxNx.independent.HA.tree
   if (ind){
-    tree = read.beast("./combined/450.independent.HA.tree")
+    tree = read.beast("./combined/HLHxNx.independent.HA.tree")
   }else{
-    tree = read.beast("./combined/450.dependent.HA.tree")
+    tree = read.beast("./combined/HLHxNx.dependent.HA.tree")
   }
 
   # plot the tree, coloring by the trait HPAI+LPAI
@@ -504,12 +557,11 @@ for (ind in c(TRUE, FALSE)){
   p_tree$layers <- append(p_tree$layers[ (length(p_tree$layers)-5) : length(p_tree$layers) ],
                           p_tree$layers[ 1 : (length(p_tree$layers)-6) ])
   
-  plot(p_tree)
-  
+
   if (ind){
-    hpai_events = read.table("./combined/450.independent.clades.tsv", header=TRUE, sep="\t")
+    hpai_events = read.table("./combined/HLHxNx.independent.clades.tsv", header=TRUE, sep="\t")
   }else{
-    hpai_events = read.table("./combined/450.dependent.clades.tsv", header=TRUE, sep="\t")
+    hpai_events = read.table("./combined/HLHxNx.dependent.clades.tsv", header=TRUE, sep="\t")
   }
     
   # remove all events for which Lineage is not HPAI
@@ -781,7 +833,7 @@ for (ind in c(TRUE, FALSE)){
     # get the segment name
     segment = segment_order[s]
     # read in the tree
-    tree = read.beast(paste0("./combined/450.independent.", segment, ".tree"))
+    tree = read.beast(paste0("./combined/HLHxNx.independent.", segment, ".tree"))
     # plot the tree, coloring by the trait HPAI+LPAI
     
     # convert mrsi to decimal year

@@ -19,12 +19,12 @@ setwd(this.dir)
 # plot the rate over time
 reassortment_rate = data.frame()
 # define the mrsi
-mrsi = as.Date(c("2025-02-17", "2024-08-14"))
+mrsi = as.Date(c("2025-02-17", "2024-08-22", "2025-02-17", "2024-08-22"))
 
 # define the segment order
 segment_order = c("HA", "NA", "MP", "NS", "NP", "PB1", "PB2", "PA")
 
-rate_shift_str = '0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 3 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4 4.1 4.2 4.3 4.4 4.5 4.6 4.7 4.8 4.9 5 10 15 20 25 30 300'
+rate_shift_str = '0 0.12 0.24 0.36 0.48 0.6 0.72 0.84 0.96 1.08 1.2 1.32 1.44 1.56 1.68 1.8 1.92 2.04 2.16 2.28 2.4 2.52 2.64 2.76 2.88 3 3.12 3.24 3.36 3.48 3.6 3.72 3.84 3.96 4.08 4.2 4.32 4.44 4.56 4.68 4.8 4.92 5.04 5.16 5.28 5.4 5.52 5.64 5.76 5.88 6 6.8 7.6 8.4 9.2 10 1000 5000'
 rate_shifts = as.numeric(strsplit(rate_shift_str, " ")[[1]])
 
 
@@ -34,8 +34,9 @@ lineage_colors <- c(
   unknown  = "#4DAF4A"  # green
 )
 
-clades = c("HPAI", "LPAI")
-rerun = F
+clades = c("HPAI", "LPAI", "HPAI", "LPAI")
+dataset = c("3 segments", "3 segments", "8 segments", "8 segments")
+rerun = T
 
 
 data = data.frame();
@@ -48,31 +49,36 @@ for (isIndependent in c(TRUE, FALSE)){
       for (clade in clades){
         # run log combiner on the independent trees
         # system(paste0("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-        #                "-burnin 50 -log ./out3seg/", clade, "_450.independent.rep*.trees -o ./combined3seg/", clade, "_450.independent.trees"))
+        #                "-burnin 50 -log ./out3seg/", clade, "_HLHxNx.independent.rep*.trees -o ./combined3seg/", clade, "_HLHxNx.independent.trees"))
         system(paste0("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                       "-burnin 50 -log ./out3seg/", clade, "_450.independent.rep*.log -o ./combined3seg/", clade, "_450.independent.log"))
+                       "-burnin 50 -log ./out3seg/", clade, "_HLHxNx.independent.rep*.log -o ./combined3seg/", clade, "_HLHxNx.independent.log"))
       }
     }
-    # read in the log file for 450
-    hpai_log_file <- read.csv("./combined3seg/HPAI_450.independent.log", sep="\t")
-    lpai_log_file <- read.csv("./combined3seg/LPAI_450.independent.log", sep="\t")
+    # read in the log file for HLHxNx
+    hpai_log_file <- read.csv("./combined3seg/HPAI_HLHxNx.independent.log", sep="\t")
+    lpai_log_file <- read.csv("./combined3seg/LPAI_HLHxNx.independent.log", sep="\t")
+    hpai_log_file_all_seg <- read.csv("./combined/HPAI_HLHxNx.independent.log", sep="\t")
+    lpai_log_file_all_seg <- read.csv("./combined/LPAI_HLHxNx.independent.log", sep="\t")
+    
   }else{
     
     if (rerun){
       for (clade in clades){
         # run log combiner on the dependent trees
         # system(paste0("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-        #                "-burnin 50 -log ./out3seg/", clade, "_450.dependent.rep*.trees -o ./combined3seg/", clade, "_450.dependent.trees"))
+        #                "-burnin 50 -log ./out3seg/", clade, "_HLHxNx.dependent.rep*.trees -o ./combined3seg/", clade, "_HLHxNx.dependent.trees"))
         system(paste0("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                       "-burnin 50 -log ./out3seg/", clade, "_450.dependent.rep*.log -o ./combined3seg/", clade, "_450.dependent.log"))
+                       "-burnin 50 -log ./out3seg/", clade, "_HLHxNx.dependent.rep*.log -o ./combined3seg/", clade, "_HLHxNx.dependent.log"))
       }
     }
-    # log_file <- read.csv("./combined3seg/450.dependent.log", sep="\t")
-    hpai_log_file <- read.csv("./combined3seg/HPAI_450.dependent.log", sep="\t")
-    lpai_log_file <- read.csv("./combined3seg/LPAI_450.dependent.log", sep="\t")
+    # log_file <- read.csv("./combined3seg/HLHxNx.dependent.log", sep="\t")
+    hpai_log_file <- read.csv("./combined3seg/HPAI_HLHxNx.dependent.log", sep="\t")
+    lpai_log_file <- read.csv("./combined3seg/LPAI_HLHxNx.dependent.log", sep="\t")
+    hpai_log_file_all_seg <- read.csv("./combined/HPAI_HLHxNx.dependent.log", sep="\t")
+    lpai_log_file_all_seg <- read.csv("./combined/LPAI_HLHxNx.dependent.log", sep="\t")
   }
   c = 1
-  for (log_file in list(hpai_log_file, lpai_log_file)){
+  for (log_file in list(hpai_log_file, lpai_log_file, hpai_log_file_all_seg, lpai_log_file_all_seg)){
     print(c)
     # get the clade from the log file name
     for (i in seq(1, length(rate_shifts))){
@@ -99,6 +105,7 @@ for (isIndependent in c(TRUE, FALSE)){
           lower = lower,
           isIndependent = isIndependent,
           clade = clades[c],
+          dataset = dataset[c],
           rate = "reassortment"
         ))
         upper = quantile(ne, 1-q/2)
@@ -115,6 +122,7 @@ for (isIndependent in c(TRUE, FALSE)){
           lower = lower,
           isIndependent = isIndependent,
           clade = clades[c],
+          dataset = dataset[c],
           rate = "Ne"
         ))
         
@@ -139,13 +147,14 @@ reassortment_rate$alpha[reassortment_rate$quantile == 1] = 1.0
 
 for (ind in c(TRUE, FALSE)){
   # plot the reassortment rate over time
-  p = ggplot(reassortment_rate[reassortment_rate$isIndependent == ind & reassortment_rate$rate == "reassortment", ], aes(x=time, y=upper, group=quantile, fill=clade)) +
-    geom_ribbon(aes(ymin=lower, ymax=upper, alpha=alpha), fill="grey29") +
+  p = ggplot(reassortment_rate[reassortment_rate$isIndependent == ind & reassortment_rate$rate == "reassortment", ], 
+             aes(x=time, y=upper, group=interaction(quantile, dataset), fill=dataset)) +
+    geom_ribbon(aes(ymin=lower, ymax=upper, alpha=alpha)) +
     coord_cartesian(xlim=c(as.Date("2021-09-01"), max(mrsi)), ylim=c(-4, 2)) +
     scale_alpha(guide=F) +
     facet_wrap(.~clade, ncol = 1) +
     # scale_fill_manual(values=methods_colors, name="Method") +
-    scale_fill_manual(values=lineage_colors, name="Clade") +
+    # scale_fill_manual(values=lineage_colors, name="Clade") +
     # mark the minimum and maximum time for each independent
     # label the y axis as exp(y)
     scale_y_continuous(breaks=c(log(0.05), log(0.1), log(0.2), log(0.4), log(0.8), log(1.6), log(3.2)), 
@@ -201,7 +210,7 @@ for (ind in c(TRUE, FALSE)){
     scale_fill_manual(values=lineage_colors, name="Clade") +
     geom_line(data=smoothed_case_data, aes(x=date, y=positivity*12-1, color=type, group=type), method=NA, size=0.5) +
     scale_color_manual(values=c("HPAI"="#E41A1C", "LPAI"="#377EB8"), name="Type") +
-    
+    facet_wrap(.~dataset, ncol = 1) +
     xlab("Time") +
     ylab("Effective population size") +
     theme_minimal()
