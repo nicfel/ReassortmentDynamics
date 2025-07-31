@@ -7,9 +7,11 @@ library(treeio)
 library(ggnewscale)
 library(cowplot)
 
-
-# Clear workspace
 rm(list=ls())
+
+clades = c("B3.13", "D1.1")
+rate_shift_str = '0 0.105936073059361 0.211872146118721 0.317808219178082 0.423744292237443 0.529680365296804 0.635616438356164 0.741552511415525 0.847488584474886 0.953424657534247 1.05936073059361 1.16529680365297 1.27123287671233 1.37716894977169 1.48310502283105 1.58904109589041 1.69497716894977 1.80091324200913 1.90684931506849 2.01278538812785 2.11872146118721 2.22465753424658 2.33059360730594 2.4365296803653 2.54246575342466 2.64840182648402 2.75433789954338 2.86027397260274 2.9662100456621 3.07214611872146 3.17808219178082 3.28401826484018 3.38995433789954 3.4958904109589 3.60182648401827 3.70776255707763 3.81369863013699 3.91963470319635 4.02557077625571 4.13150684931507'
+rate_shifts = as.numeric(strsplit(rate_shift_str, " ")[[1]])
 
 # Set random seed for reproducibility
 set.seed(6465546)
@@ -27,8 +29,6 @@ mrsi_lpai = as.Date("2024-08-22")
 # define the segment order
 segment_order = c("HA", "NA", "MP", "NS", "NP", "PB1", "PB2", "PA")
 
-rate_shift_str = '0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 3 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4 4.1 4.2 4.3 4.4 4.5 4.6 4.7 4.8 4.9 5 10 15 20 25 30 1000'
-rate_shifts = as.numeric(strsplit(rate_shift_str, " ")[[1]])
 
 # 1) Methods (3 distinct hues from Set1)
 methods_colors <- c(
@@ -58,62 +58,36 @@ lineage_colors <- c(
   unknown  = "#4DAF4A"  # green
 )
 
-clades = c("B3.13", "D1.1")
 rerun = T
 
-data = data.frame();
 for (isIndependent in c(TRUE, FALSE)){
   
-
   if (isIndependent){
     if (rerun){
       # run log combined on the independent trees
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/HLHxNx.independent.rep*.trees -o ./combined/HLHxNx.independent.trees"))
+                   "-burnin 20 -log ./out3/HLHxNx.independent.rep*.trees -o ./combined/HLHxNx.independent.trees"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/HPAI_HLHxNx.independent.rep*.trees -o ./combined/HPAI_HLHxNx.independent.trees"))
+                   "-burnin 20 -log ./out3/HPAI_HLHxNx.independent.rep*.trees -o ./combined/HPAI_HLHxNx.independent.trees"))
       
-      system(paste0("sed \"s/'//g\" ./combined/HLHxNx.independent.trees > ./combined/HLHxNx.independent.cleaned.trees"))
-      system(paste0("sed \"s/'//g\" ./combined/HPAI_HLHxNx.independent.trees > ./combined/HPAI_HLHxNx.independent.cleaned.trees"))
-      # replace the old file with the cleaned one
-      file.rename("./combined/HLHxNx.independent.cleaned.trees", "./combined/HLHxNx.independent.trees")
-      file.rename("./combined/HPAI_HLHxNx.independent.cleaned.trees", "./combined/HPAI_HLHxNx.independent.trees")
-      
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize",
-                   "-burnin 0 -followSegment 0  -positions MCC  ./combined/HLHxNx.independent.trees ./combined/HLHxNx.independent.tree"))
-      
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize",
-                   "-burnin 0 -followSegment 0  -positions MCC  ./combined/HPAI_HLHxNx.independent.trees ./combined/HPAI_HLHxNx.independent.tree"))
 
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/HLHxNx.independent.rep*.log -o ./combined/HLHxNx.independent.log"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/LPAI_HLHxNx.independent.rep*.log -o ./combined/LPAI_HLHxNx.independent.log"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/HPAI_HLHxNx.independent.rep*.log -o ./combined/HPAI_HLHxNx.independent.log"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize -burnin 0 -followSegment 0  -positions MCC  ./combined/HLHxNx.independent.trees ./combined/HLHxNx.independent.tree"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize -burnin 0 -followSegment 0  -positions MCC  ./combined/HPAI_HLHxNx.independent.trees ./combined/HPAI_HLHxNx.independent.tree"))
       
-      
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/HPAI_HLHxNx.independent.trees -clade ./tables/cow_clade.csv -out ./combined/clade_heights_independent.tsv"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/HPAI_HLHxNx.independent.trees -clade ./tables/d11.csv -out ./combined/clade_d11_heights_independent.tsv"))
-      
-      
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile",
-                   "-burnin 0 -followSegment 0 -tree ./combined/HLHxNx.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.independent.clades.trees"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile",
-                   "-burnin 0 -followSegment 0 -printTable true -tree ./combined/HLHxNx.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.independent.clades.tsv"))
-  
-      
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out3/HLHxNx.independent.rep*.log -o ./combined/HLHxNx.independent.log"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out3/LPAI_HLHxNx.independent.rep*.log -o ./combined/LPAI_HLHxNx.independent.log"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out3/HPAI_HLHxNx.independent.rep*.log -o ./combined/HPAI_HLHxNx.independent.log"))
+
       # for (s in seq(1,length(segment_order), 1)){
       #   # get the segment name
       #   segment = segment_order[s]
       #   # run the applauncher to mark the clades for this segment
       #   system(paste0("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile ",
       #                "-burnin 0 -followSegment ", s-1, " -printSegment ", s-1,
-      #                " -tree ./combined/HLHxNx.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.independent.", segment, ".trees"))
+      #                " -tree ./combined/HPAI_HLHxNx.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.independent.", segment, ".trees"))
       #   system(paste0("/Applications/BEAST\\ 2.7.7/bin/treeannotator ",
       #                "-burnin 0 -height keep ./combined/HLHxNx.independent.", segment, ".trees  ./combined/HLHxNx.independent.", segment, ".tree"))
+      #   dsa
       # }
     }
     
@@ -123,38 +97,26 @@ for (isIndependent in c(TRUE, FALSE)){
     
     # read in the log file for HLHxNx
     log_file <- read.csv("./combined/HLHxNx.independent.log", sep="\t")
-    log_file_lpai <- read.csv("./combined/LPAI_HLHxNx.independent.log", sep="\t")
-    log_file_hpai <- read.csv("./combined/HPAI_HLHxNx.independent.log", sep="\t")
+    # log_file_lpai <- read.csv("./combined/LPAI_HLHxNx.independent.log", sep="\t")
+    # log_file_hpai <- read.csv("./combined/HPAI_HLHxNx.independent.log", sep="\t")
   }else{
     
     if (rerun){
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/HLHxNx.dependent.rep*.trees -o ./combined/HLHxNx.dependent.trees"))
+                   "-burnin 20 -log ./out3/HLHxNx.dependent.rep*.trees -o ./combined/HLHxNx.dependent.trees"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/HPAI_HLHxNx.dependent.rep*.trees -o ./combined/HPAI_HLHxNx.dependent.trees"))
-      
-      system(paste0("sed \"s/'//g\" ./combined/HLHxNx.dependent.trees > ./combined/HLHxNx.dependent.cleaned.trees"))
-      system(paste0("sed \"s/'//g\" ./combined/HPAI_HLHxNx.dependent.trees > ./combined/HPAI_HLHxNx.dependent.cleaned.trees"))
-      # replace the old file with the cleaned one
-      file.rename("./combined/HLHxNx.dependent.cleaned.trees", "./combined/HLHxNx.dependent.trees")
-      file.rename("./combined/HPAI_HLHxNx.dependent.cleaned.trees", "./combined/HPAI_HLHxNx.dependent.trees")
+                   "-burnin 20 -log ./out3/HPAI_HLHxNx.dependent.rep*.trees -o ./combined/HPAI_HLHxNx.dependent.trees"))
       
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize",
                    "-burnin 0 -followSegment 0  -positions MCC  ./combined/HPAI_HLHxNx.dependent.trees ./combined/HPAI_HLHxNx.dependent.tree"))
       
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
+                   "-burnin 20 -log ./out3/HLHxNx.dependent.rep*.log -o ./combined/HLHxNx.dependent.log"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
+                   "-burnin 20 -log ./out3/LPAI_HLHxNx.dependent.rep*.log -o ./combined/LPAI_HLHxNx.dependent.log"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
+                   "-burnin 20 -log ./out3/HPAI_HLHxNx.dependent.rep*.log -o ./combined/HPAI_HLHxNx.dependent.log"))
       
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/HLHxNx.dependent.rep*.log -o ./combined/HLHxNx.dependent.log"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/LPAI_HLHxNx.dependent.rep*.log -o ./combined/LPAI_HLHxNx.dependent.log"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 50 -log ./out/HPAI_HLHxNx.dependent.rep*.log -o ./combined/HPAI_HLHxNx.dependent.log"))
-      
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/HPAI_HLHxNx.dependent.trees -clade ./tables/cow_clade.csv -out ./combined/clade_heights_dependent.tsv"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
-                   "-burnin 0 -tree ./combined/HPAI_HLHxNx.dependent.trees -clade ./tables/d11.csv -out ./combined/clade_d11_heights_dependent.tsv"))
-  
 
       # for (s in seq(1,length(segment_order), 1)){
       #   # get the segment name
@@ -175,88 +137,16 @@ for (isIndependent in c(TRUE, FALSE)){
     
     # read in the log file for HLHxNx
     log_file <- read.csv("./combined/HLHxNx.dependent.log", sep="\t")
-    log_file_lpai <- read.csv("./combined/LPAI_HLHxNx.dependent.log", sep="\t")
-    log_file_hpai <- read.csv("./combined/HPAI_HLHxNx.dependent.log", sep="\t")
+    # log_file_lpai <- read.csv("./combined/LPAI_HLHxNx.dependent.log", sep="\t")
+    # log_file_hpai <- read.csv("./combined/HPAI_HLHxNx.dependent.log", sep="\t")
   }
         
-  for (cl in clades){
-    # remove the first 10 % of rows
-    if (cl == "B3.13"){
-      clade_heights <- clade_cow_heights
-    }else if (cl == "D1.1"){
-      clade_heights <- clade_d11_heights
-    }
 
-    # define the rate shifts values
-    #loop over the posterior
-    no_event_probs = c()
-    for (l in seq(1, min(nrow(clade_heights), nrow(log_file)), 1)) {
-      # get the timings of the HA segment
-      if (cl == "B3.13"){
-        min_time = clade_heights[l, 2]
-        max_time = clade_heights[l, 3]
-      }else if (cl == "D1.1"){
-        min_time = clade_heights[l, 2]
-        max_time = clade_heights[l, 3]
-      }
-      
-    
-      first_interval = which(rate_shifts <= min_time)[length(which(rate_shifts <= min_time))]
-      last_interval = which(rate_shifts <= max_time)[length(which(rate_shifts <= max_time))]
-      
-      curr_time = min_time
-      weighted = 0.0
-      
-      for (i in seq(first_interval, last_interval)) {
-        if (i > length(rate_shifts)) {
-          stop("rate shifts out of bounds")
-        }
-        next_time = min(rate_shifts[i + 1], max_time)
-        
-        # get the reassortment rates of this interval at the beginning and end
-        r_start = log_file[l, paste0("InfectedToRho.", i)]
-        r_end = log_file[l, paste0("InfectedToRho.", i + 1)]
-        if (!isIndependent){
-          r_start = r_start+log_file[l, paste0("logNe.", i)]
-          r_end = r_end+log_file[l, paste0("logNe.", i + 1)]
-        }
-        
-        # calculate the growth rate for this interval  
-        growth = (r_start - r_end)/(rate_shifts[i+1]-rate_shifts[i]);
-    
-        timediff1 = curr_time - rate_shifts[i]
-        timediff2 = next_time - rate_shifts[i]
-
-        if (growth == 0.0) {
-          weighted = weighted +  (next_time - curr_time) * Math.exp(rates[i]);
-        } else {
-          weighted <- weighted + exp(r_start)/(-growth) * (
-            exp(-growth * timediff2) - exp(-growth * timediff1)
-          )
-        }
-        curr_time = next_time;
-      }
-      
-
-      # Compute probability of no event over interval
-      data = rbind(data, data.frame(
-        no_event_prob = 1-(1-0.5^(8-1))*exp(-weighted),
-        min_time = min_time,
-        max_time = max_time,
-        isIndependent = isIndependent,
-        mean_rate = weighted / (max_time - min_time),
-        weighted = weighted,
-        clade = cl
-      ))
-    }
-  }
-    
-  
   # put your 3 data.frames into a named list
   df_list <- list(
     both = log_file,
-    hpai = log_file_hpai,
-    lpai = log_file_lpai
+    # hpai = log_file_hpai,
+    # lpai = log_file_lpai
   )
 
   for (df_name in names(df_list)) {
