@@ -10,7 +10,7 @@ library(cowplot)
 rm(list=ls())
 
 clades = c("B3.13", "D1.1")
-rate_shift_str = '0 0.105936073059361 0.211872146118721 0.317808219178082 0.423744292237443 0.529680365296804 0.635616438356164 0.741552511415525 0.847488584474886 0.953424657534247 1.05936073059361 1.16529680365297 1.27123287671233 1.37716894977169 1.48310502283105 1.58904109589041 1.69497716894977 1.80091324200913 1.90684931506849 2.01278538812785 2.11872146118721 2.22465753424658 2.33059360730594 2.4365296803653 2.54246575342466 2.64840182648402 2.75433789954338 2.86027397260274 2.9662100456621 3.07214611872146 3.17808219178082 3.28401826484018 3.38995433789954 3.4958904109589 3.60182648401827 3.70776255707763 3.81369863013699 3.91963470319635 4.02557077625571 4.13150684931507'
+rate_shift_str = '0 1.25 2.5 3.75 5 6 9.5 13 16.5 20'
 rate_shifts = as.numeric(strsplit(rate_shift_str, " ")[[1]])
 
 # Set random seed for reproducibility
@@ -58,64 +58,67 @@ lineage_colors <- c(
   unknown  = "#4DAF4A"  # green
 )
 
-rerun = T
+rerun = F
 
-for (isIndependent in c(TRUE, FALSE)){
+for (isconstant in c(TRUE)){
   
-  if (isIndependent){
+  if (isconstant){
     if (rerun){
-      # run log combined on the independent trees
+      # run log combined on the constant trees
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 20 -log ./out3/HLHxNx.independent.rep*.trees -o ./combined/HLHxNx.independent.trees"))
+                   "-burnin 20 -log ./out2/HLHxNx.constant.rep*.trees -o ./combined/HLHxNx.constant.trees"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 20 -log ./out3/HPAI_HLHxNx.independent.rep*.trees -o ./combined/HPAI_HLHxNx.independent.trees"))
+                   "-burnin 20 -log ./out2/HLHxNx.constant.rep*.trees -o ./combined/HLHxNx.constant.trees"))
       
 
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize -burnin 0 -followSegment 0  -positions MCC  ./combined/HLHxNx.independent.trees ./combined/HLHxNx.independent.tree"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize -burnin 0 -followSegment 0  -positions MCC  ./combined/HPAI_HLHxNx.independent.trees ./combined/HPAI_HLHxNx.independent.tree"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize -burnin 0 -followSegment 0  -positions MCC  ./combined/HLHxNx.constant.trees ./combined/HLHxNx.constant.tree"))
+      # system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize -burnin 0 -followSegment 0  -positions MCC  ./combined/HPAI_HLHxNx.constant.trees ./combined/HPAI_HLHxNx.constant.tree"))
       
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out3/HLHxNx.independent.rep*.log -o ./combined/HLHxNx.independent.log"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out3/LPAI_HLHxNx.independent.rep*.log -o ./combined/LPAI_HLHxNx.independent.log"))
-      system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out3/HPAI_HLHxNx.independent.rep*.log -o ./combined/HPAI_HLHxNx.independent.log"))
+      # system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out2/HLHxNx.constant.rep*.log -o ./combined/HLHxNx.constant.log"))
+      # system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out/LPAI_HLHxNx.constant.rep*.log -o ./combined/LPAI_HLHxNx.constant.log"))
+      # system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out/HPAI_HLHxNx.constant.rep*.log -o ./combined/HPAI_HLHxNx.constant.log"))
 
-      # for (s in seq(1,length(segment_order), 1)){
-      #   # get the segment name
-      #   segment = segment_order[s]
-      #   # run the applauncher to mark the clades for this segment
-      #   system(paste0("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile ",
-      #                "-burnin 0 -followSegment ", s-1, " -printSegment ", s-1,
-      #                " -tree ./combined/HPAI_HLHxNx.independent.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.independent.", segment, ".trees"))
-      #   system(paste0("/Applications/BEAST\\ 2.7.7/bin/treeannotator ",
-      #                "-burnin 0 -height keep ./combined/HLHxNx.independent.", segment, ".trees  ./combined/HLHxNx.independent.", segment, ".tree"))
-      #   dsa
-      # }
+      
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile",
+                   "-burnin 0 -followSegment 0 -tree ./combined/HLHxNx.constant.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.constant.clades.trees"))
+      system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile",
+                   "-burnin 0 -followSegment 0 -printTable true -tree ./combined/HLHxNx.constant.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.constant.clades.tsv"))
+      
+      
+      for (s in seq(1,length(segment_order), 1)){
+        # get the segment name
+        segment = segment_order[s]
+        # run the applauncher to mark the clades for this segment
+        system(paste0("/Applications/BEAST\\ 2.7.7/bin/applauncher MarkCladesFromCladeFile ",
+                     "-burnin 0 -followSegment ", s-1, " -printSegment ", s-1,
+                     " -tree ./combined/HLHxNx.constant.trees -clade ./tables/HPAI_LPAI.csv -out ./combined/HLHxNx.constant.", segment, ".trees"))
+        system(paste0("/Applications/BEAST\\ 2.7.7/bin/treeannotator ",
+                     "-burnin 0 -height keep ./combined/HLHxNx.constant.", segment, ".trees  ./combined/HLHxNx.constant.", segment, ".tree"))
+      }
     }
     
-    # Read in the clade heights
-    clade_cow_heights <- read.csv("./combined/clade_heights_independent.tsv", sep="\t")
-    clade_d11_heights <- read.csv("./combined/clade_d11_heights_independent.tsv", sep="\t")
     
     # read in the log file for HLHxNx
-    log_file <- read.csv("./combined/HLHxNx.independent.log", sep="\t")
-    # log_file_lpai <- read.csv("./combined/LPAI_HLHxNx.independent.log", sep="\t")
-    # log_file_hpai <- read.csv("./combined/HPAI_HLHxNx.independent.log", sep="\t")
+    log_file <- read.csv("./combined/HLHxNx.constant.log", sep="\t")
+    # log_file_lpai <- read.csv("./combined/LPAI_HLHxNx.constant.log", sep="\t")
+    # log_file_hpai <- read.csv("./combined/HPAI_HLHxNx.constant.log", sep="\t")
   }else{
     
     if (rerun){
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 20 -log ./out3/HLHxNx.dependent.rep*.trees -o ./combined/HLHxNx.dependent.trees"))
+                   "-burnin 20 -log ./out/HLHxNx.dependent.rep*.trees -o ./combined/HLHxNx.dependent.trees"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 20 -log ./out3/HPAI_HLHxNx.dependent.rep*.trees -o ./combined/HPAI_HLHxNx.dependent.trees"))
+                   "-burnin 20 -log ./out/HPAI_HLHxNx.dependent.rep*.trees -o ./combined/HPAI_HLHxNx.dependent.trees"))
       
       system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize",
                    "-burnin 0 -followSegment 0  -positions MCC  ./combined/HPAI_HLHxNx.dependent.trees ./combined/HPAI_HLHxNx.dependent.tree"))
       
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 20 -log ./out3/HLHxNx.dependent.rep*.log -o ./combined/HLHxNx.dependent.log"))
+                   "-burnin 20 -log ./out/HLHxNx.dependent.rep*.log -o ./combined/HLHxNx.dependent.log"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 20 -log ./out3/LPAI_HLHxNx.dependent.rep*.log -o ./combined/LPAI_HLHxNx.dependent.log"))
+                   "-burnin 20 -log ./out/LPAI_HLHxNx.dependent.rep*.log -o ./combined/LPAI_HLHxNx.dependent.log"))
       system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ",
-                   "-burnin 20 -log ./out3/HPAI_HLHxNx.dependent.rep*.log -o ./combined/HPAI_HLHxNx.dependent.log"))
+                   "-burnin 20 -log ./out/HPAI_HLHxNx.dependent.rep*.log -o ./combined/HPAI_HLHxNx.dependent.log"))
       
 
       # for (s in seq(1,length(segment_order), 1)){
@@ -129,12 +132,7 @@ for (isIndependent in c(TRUE, FALSE)){
       #                "-burnin 0 -height keep ./combined/HLHxNx.dependent.", segment, ".trees  ./combined/HLHxNx.dependent.", segment, ".tree"))
       # }
     }
-    
-    
-    # Read in the clade heights
-    clade_cow_heights <- read.csv("./combined/clade_heights_dependent.tsv", sep="\t")
-    clade_d11_heights <- read.csv("./combined/clade_d11_heights_dependent.tsv", sep="\t")
-    
+
     # read in the log file for HLHxNx
     log_file <- read.csv("./combined/HLHxNx.dependent.log", sep="\t")
     # log_file_lpai <- read.csv("./combined/LPAI_HLHxNx.dependent.log", sep="\t")
@@ -142,43 +140,41 @@ for (isIndependent in c(TRUE, FALSE)){
   }
         
 
-  # put your 3 data.frames into a named list
-  df_list <- list(
-    both = log_file,
-    # hpai = log_file_hpai,
-    # lpai = log_file_lpai
-  )
-
-  for (df_name in names(df_list)) {
-    lf <- df_list[[df_name]]
-    # choose the appropriate mrsi vector
-    mrsi_tmp <- if (df_name == "lpai") mrsi_lpai else mrsi
-    for (i in seq(1, length(rate_shifts))){
-      # get the reassortment rate at this time point
-      rate = lf[, paste0("InfectedToRho.", i)]
-      if (!isIndependent){
-        rate = rate+lf[, paste0("logNe.", i)]
-      }
-
-      # get all the quantile from 0.05 to 1.0
-      for (q in seq(0.05, 1.0, 0.05)){
-        upper = quantile(rate, 1-q/2)
-        lower = quantile(rate, q/2)
-        if (q==1){
-          lower = lower+0.03
-          upper = upper-0.03
-        }
-        reassortment_rate = rbind(reassortment_rate, data.frame(
-          time = mrsi_tmp - rate_shifts[i]*365,
-          quantile = q,
-          upper = upper,
-          lower = lower,
-          isIndependent = isIndependent,
-          name = df_name
-        ))
-      }
-    }
-  }
+  # # put your 3 data.frames into a named list
+  # df_list <- list(
+  #   both = log_file
+  # )
+  # 
+  # for (df_name in names(df_list)) {
+  #   lf <- df_list[[df_name]]
+  #   # choose the appropriate mrsi vector
+  #   mrsi_tmp <- if (df_name == "lpai") mrsi_lpai else mrsi
+  #   for (i in seq(1, length(rate_shifts))){
+  #     # get the reassortment rate at this time point
+  #     rate = lf[, paste0("InfectedToRho.", i)]
+  #     if (!isconstant){
+  #       rate = rate+lf[, paste0("logNe.", i)]
+  #     }
+  # 
+  #     # get all the quantile from 0.05 to 1.0
+  #     for (q in seq(0.05, 1.0, 0.05)){
+  #       upper = quantile(rate, 1-q/2)
+  #       lower = quantile(rate, q/2)
+  #       if (q==1){
+  #         lower = lower+0.03
+  #         upper = upper-0.03
+  #       }
+  #       reassortment_rate = rbind(reassortment_rate, data.frame(
+  #         time = mrsi_tmp - rate_shifts[i]*365,
+  #         quantile = q,
+  #         upper = upper,
+  #         lower = lower,
+  #         isconstant = isconstant,
+  #         name = df_name
+  #       ))
+  #     }
+  #   }
+  # }
 }
 
 # read in positive cases
@@ -209,75 +205,26 @@ for (d in seq(min_date+23, max_date-23, by="day")){
 }
 smoothed_case_data$date = as.Date(smoothed_case_data$date, format="%Y-%m-%d")
 
-# calculate the mean min time and mean max time for data for each independent
-data_mean = aggregate(cbind(min_time, max_time, no_event_prob, mean_rate) ~ isIndependent, data=data, FUN=median)
-# get the upper and lower quantiles for min_time and max_time
-data_time = data.frame()
-for (isIndependent in c(TRUE, FALSE)){
-  for (cl in clades){
-    # get all the quantile from 0.05 to 1.0
-    vals_start = data[ data$isIndependent == isIndependent & data$clade == cl,"min_time"]
-    vals_end = data[ data$isIndependent == isIndependent & data$clade == cl,"max_time"]
-    # for (q in seq(0.05, 1.0, 0.05)){
-      # upper = quantile(vals, 1-q/2)
-      # lower = quantile(vals, q/2)
-      data_time = rbind(data_time, data.frame(
-        quantile = q,
-        upper = median(vals_end),
-        lower = median(vals_start),
-        isIndependent = isIndependent,
-        # bound= lower,
-        clade = cl,
-        y_clade_off = ifelse(cl=="B3.13", 1, 0)
-      ))
-    # }
-    # for (q in seq(0.05, 1.0, 0.01)){
-    #   upper = quantile(vals, 1-q/2)
-    #   lower = quantile(vals, q/2)
-    #   data_time = rbind(data_time, data.frame(
-    #     quantile = q,
-    #     upper = upper,
-    #     lower = lower,
-    #     isIndependent = isIndependent,
-    #     bound= upper,
-    #     clade = cl
-    #   ))
-    # }
-  }
-  
-}
 
-
-# start new variable, independent rho
-reassortment_rate$method = "independent rho"
+# start new variable, constant rho
+reassortment_rate$method = "constant rho"
 
 # 1) Methods (3 distinct hues from Set1)
 methods_colors <- c(
   "constant"= "#E41A1C",  # red
-  "independent rho"= "#377EB8",  # blue
+  "constant rho"= "#377EB8",  # blue
   "dependent rho(t)"= "#4DAF4A"   # green
 )
 
 reassortment_rate$alpha = 0.2
 # for q==1 set it to 1
 reassortment_rate$alpha[reassortment_rate$quantile == 1] = 1.0
-# start new variable, independent rho
-data_time$method = "independent rho"
-data_time$method[data_mean$isIndependent == FALSE] = "dependent rho(t)"
-
-data_mean$method = "independent rho"
-data_mean$method[data_mean$isIndependent == FALSE] = "dependent rho(t)"
+# start new variable, constant rho
 
 y_val = log(0.03)
 y_off = 0.2
 
-for (ind in c(TRUE, FALSE)){
-  # # read in the low path Ne in ./tables/LPAI_PB2_population_size.csv"
-  # lpai_ne = read.csv("./tables/LPAI_PB2_population_size.csv")
-  # lpai_ne$time = as.Date(lpai_ne$time)
-  # lpai_ne$method=NA
-  # lpai_ne$quantile=NA
-  
+for (ind in c(TRUE)){
   # plot the reassortment rate over time
   smoothed_case_data$method=NA
   smoothed_case_data$quantile=NA
@@ -286,101 +233,36 @@ for (ind in c(TRUE, FALSE)){
     lpai    = "#377EB8",  # blue
     both  = "#4DAF4A"  # green
   )
-  data_time$name=NA
   smoothed_case_data$name =NA
-  p = ggplot(reassortment_rate[reassortment_rate$isIndependent == ind, ], aes(x=time, y=upper, group=interaction(quantile, name), fill=name)) +
-    geom_ribbon(aes(ymin=lower, ymax=upper, alpha=alpha)) +
-    coord_cartesian(xlim=c(as.Date("2021-09-01"), mrsi), ylim=c(-4, log(5))) +
-    scale_alpha(guide=F) +
-    geom_segment(data=data_time, aes(x=mrsi-lower*365, xend=mrsi-upper*365, y=y_val+y_clade_off*y_off, yend=y_val+quantile*y_clade_off*y_off, group=quantile, color=clade), size=2) +
-    scale_fill_manual(values=lineage_colors, name="Dataset") +
-    scale_color_manual(values=clade_colors, name="Median Emergence Time of Clade:") +
-    new_scale_color()+
-    geom_line(data=smoothed_case_data, aes(x=date, y=log(positivity), color=type, group=type), method=NA, size=0.5) +
-    scale_color_manual(values=c("HPAI"="#E41A1C", "LPAI"="#377EB8"), name="Type") +
-    
-    scale_y_continuous(breaks=c(log(0.05), log(0.1), log(0.2), log(0.4), log(0.8), log(1.6), log(3.2)), 
-                       labels=c("0.05", "0.1", "0.2", "0.4", "0.8", "1.6", "3.2")) +
-    theme_minimal() + 
-    theme(legend.position = "top")+
-    xlab("Time") +
-    ylab("Reassortment rate") 
-  plot(p)
-  if (ind){
-    ggsave(p, filename="../../Figures/h5n1_reassortment_rate_independent.pdf", width=6, height=2.5)
-  }else{
-    ggsave(p, filename="../../Figures/h5n1_reassortment_rate_dependent.pdf", width=6, height=2.5)
-  }
-  # 
-  # p = ggplot() +
-  #   geom_line() +
-  #   scale_color_manual(values=lineage_colors) +
-  #   xlab("Date") +
-  #   ylab("Weekly positivity rate") +
-  #   scale_x_date()+
-  #   theme_minimal() +
-  #   coord_cartesian(xlim=c(as.Date("2021-09-01"), max_date)) 
+  # p = ggplot(reassortment_rate[reassortment_rate$isconstant == ind, ], aes(x=time, y=upper, group=interaction(quantile, name), fill=name)) +
+  #   geom_ribbon(aes(ymin=lower, ymax=upper, alpha=alpha)) +
+  #   coord_cartesian(xlim=c(as.Date("2021-09-01"), mrsi), ylim=c(-4, log(5))) +
+  #   scale_alpha(guide=F) +
+  #   scale_fill_manual(values=lineage_colors, name="Dataset") +
+  #   scale_color_manual(values=clade_colors, name="Median Emergence Time of Clade:") +
+  #   new_scale_color()+
+  #   # geom_line(data=smoothed_case_data, aes(x=date, y=log(positivity), color=type, group=type), method=NA, size=0.5) +
+  #   scale_color_manual(values=c("HPAI"="#E41A1C", "LPAI"="#377EB8"), name="Type") +
+  #   
+  #   scale_y_continuous(breaks=c(log(0.05), log(0.1), log(0.2), log(0.4), log(0.8), log(1.6), log(3.2)), 
+  #                      labels=c("0.05", "0.1", "0.2", "0.4", "0.8", "1.6", "3.2")) +
+  #   theme_minimal() + 
+  #   theme(legend.position = "top")+
+  #   xlab("Time") +
+  #   ylab("Reassortment rate") 
   # plot(p)
-  # calculat the mean and 95% quantiles of the no_event_prob
-  data_mean_no_event_prob = aggregate(no_event_prob ~ isIndependent, data=data, FUN=median)
-  data_mean_no_event_prob$lower = aggregate(no_event_prob ~ isIndependent, data=data, FUN=function(x) quantile(x, 0.025))$no_event_prob
-  data_mean_no_event_prob$upper = aggregate(no_event_prob ~ isIndependent, data=data, FUN=function(x) quantile(x, 0.975))$no_event_prob
+  # if (ind){
+  #   ggsave(p, filename="../../Figures/h5n1_reassortment_rate_constant.pdf", width=6, height=2.5)
+  # }else{
+  #   ggsave(p, filename="../../Figures/h5n1_reassortment_rate_dependent.pdf", width=6, height=2.5)
+  # }
 
-  # Get values for current ind (TRUE or FALSE)
-  label_stats <- data_mean_no_event_prob[data_mean_no_event_prob$isIndependent == ind, ]
-  
-  p1 = ggplot(data[data$isIndependent == ind, ]) +
-    geom_boxplot(aes(x=clade,y=no_event_prob, fill=clade), alpha=1) +
-    scale_color_manual(values=clade_colors, name="Clade") +
-    scale_fill_manual(values=clade_colors, name="Clade") +
-    ylab("Probability of\nat least one reassortment event") +
-    # remove everything from the x axis
-    xlab("") +
-    # Add text annotation for median and 95% quantile
-    # annotate(
-    #   "text",
-    #   x = 1,
-    #   y = label_stats$no_event_prob,
-    #   label = sprintf("%.2f (%.2f, %.2f)", 
-    #                   label_stats$no_event_prob, 
-    #                   label_stats$lower, 
-    #                   label_stats$upper),
-    #   size = 3.5,
-    #   hjust = 0.5,
-    #   vjust = 0
-    # ) +
-    theme_minimal() 
-  
-  p2 = ggplot(data[data$isIndependent == ind, ])+
-    geom_point(aes(x=mrsi-max_time*365, y=no_event_prob))+
-    xlab("time of parent node") +
-    ylab("") +
-    scale_x_date()+
-    theme_minimal() 
 
-  ggplot(data) + 
-    geom_boxplot(aes(y=mean_rate, x=isIndependent)) +
-    xlab("Min time") +
-    ylab("avg_rate") +
-    scale_y_log10() +
-    # scale_x_log10()+
-    theme_minimal()
-  
-  ggplot(data)+
-    geom_density(aes(x=max_time-min_time, color=isIndependent))+
-    xlab("Branch length leading up to cow clade") +
-    ylab("Density") +
-    # scale_x_log10()+
-    # force 0 to be included in the x axis
-    scale_x_continuous(limits=c(0, max(data$max_time - data$min_time))) +
-    theme_minimal() +
-    facet_wrap(~isIndependent, ncol=1)
-  
 
   
-  # read in ./combined/HLHxNx.independent.HA.tree
+  # read in ./combined/HLHxNx.constant.HA.tree
   if (ind){
-    tree = read.beast("./combined/HLHxNx.independent.HA.tree")
+    tree = read.beast("./combined/HLHxNx.constant.HA.tree")
   }else{
     tree = read.beast("./combined/HLHxNx.dependent.HA.tree")
   }
@@ -394,7 +276,7 @@ for (ind in c(TRUE, FALSE)){
   # which tip‐indices contain "cow"?
   cow_tips <- which(grepl("cow", tree@phylo$tip.label, ignore.case = TRUE))
   # now flag those rows in @data whose node is in cow_tips
-  tree@data$iscow[ tree@data$node %in% cow_tips ] <- "cow"
+  tree@data$iscow[tree@data$node %in% cow_tips ] <- "cow"
   # convert mrsi to decimal year
   mrsi_dec <- as.numeric(mrsi - as.Date("1970-01-01")) / 365.25 + 1970
   
@@ -449,7 +331,7 @@ for (ind in c(TRUE, FALSE)){
   
 
   if (ind){
-    hpai_events = read.table("./combined/HLHxNx.independent.clades.tsv", header=TRUE, sep="\t")
+    hpai_events = read.table("./combined/HLHxNx.constant.clades.tsv", header=TRUE, sep="\t")
   }else{
     hpai_events = read.table("./combined/HLHxNx.dependent.clades.tsv", header=TRUE, sep="\t")
   }
@@ -562,17 +444,18 @@ for (ind in c(TRUE, FALSE)){
   
   # plot the posterior distribution of the number of events for each segment, facetting by event
   p_co = ggplot(co_rea_quantiles[co_rea_quantiles$Lineage=="HPAI", ], aes(x=segment, y=mean, color=evname)) +
-    geom_point(position=position_dodge(-0.2)) +
-    geom_errorbar(aes(ymin=lower, ymax=upper), position=position_dodge(-0.2), width=0.2) +
-    xlab("")+
+    geom_point(position=position_dodge(-0.3)) +
+    geom_errorbar(aes(ymin=lower, ymax=upper), position=position_dodge(-0.3), width=0.2) +
+    ylab("")+
     scale_color_manual(values=lineage_colors, name="lineage origin of segment") +
-    ylab("\nNumber of reassortment events") +
+    ylab("events") +
     theme_minimal() +
     theme(
       legend.position = "top",
-      legend.box = "horizontal"
+      legend.box = "vertical"
     ) +
-    facet_grid(Lineage ~ ., scales = "free", switch = "y")
+    guides(color = guide_legend(ncol = 1))  # Force legend to 1 column
+    
   plot(p_co)
   
   # keeps track of teh moving average
@@ -580,136 +463,124 @@ for (ind in c(TRUE, FALSE)){
   lineage_type = c("HPAI", "LPAI")
   event_types = c("HPAI","HPAI+LPAI", "LPAI")
   
-  moving_avg = data.frame()
-  for (l in lineage_type){
-    # loop weekly from 2020 + 3 months to mrsi-3 months
-    for (i in seq(as.Date("2020-04-01"), mrsi - days_around, by = "week")){
-      # get the number of events for this sample and lineage
-      n_events = hpai_events[hpai_events$Time >= i - days_around & 
-                               hpai_events$Time <= i + days_around & 
-                               hpai_events$Lineage == l, ]
-      
-      # for each sample, count how many events there are
-      sum_events = c()
-      for (s in unique(n_events$Sample)){
-        # get the events for this sample
-        sum_events = c(sum_events, nrow(n_events[n_events$Sample == s, ]))
-      }
-      
-      
-      
-      # get the 95% HPD
-      for (q in seq(0.05, 1.0, 0.05)){
-        # get the quantiles
-        moving_avg = rbind(moving_avg, data.frame(
-          Time = i,
-          Lineage = l,
-          lower = quantile(sum_events, q/2),
-          upper = quantile(sum_events, 1-q/2),
-          q = q,
-          type="All events involving HPAI offsprings"
-        ))
-      }
-      
-      for (e in event_types){
-        # check if lineages is in e, otherwise, next
-        if (!grepl(l, e)){
-          next
-        }
-        # get the number of events for this sample and lineage
-        n_events_e = n_events[n_events$Event == e, ]
-        
-        # for each sample, count how many events there are
-        sum_events = c()
-        for (s in unique(n_events$Sample)){
-          # get the events for this sample
-          n = nrow(n_events_e[n_events_e$Sample == s, ])
-          # d = nrow(n_events[n_events$Sample == s, ])
-          sum_events = c(sum_events, n)
-        }
-        
-        
-        # get the 95% HPD
-        for (q in seq(0.05, 1.0, 0.05)){
-          # get the quantiles
-          moving_avg = rbind(moving_avg, data.frame(
-            Time = i,
-            Lineage = l,
-            # lower = mean(sum_events),
-            # upper = mean(sum_events),
-            lower = quantile(sum_events, q/2),
-            upper = quantile(sum_events, 1-q/2),
-            q = q,
-            type=e
-          ))
-        }
-      }
-    }
-  }
+  # moving_avg = data.frame()
+  # for (l in lineage_type){
+  #   # loop weekly from 2020 + 3 months to mrsi-3 months
+  #   for (i in seq(as.Date("2020-04-01"), mrsi - days_around, by = "week")){
+  #     # get the number of events for this sample and lineage
+  #     n_events = hpai_events[hpai_events$Time >= i - days_around & 
+  #                              hpai_events$Time <= i + days_around & 
+  #                              hpai_events$Lineage == l, ]
+  #     
+  #     # for each sample, count how many events there are
+  #     sum_events = c()
+  #     for (s in unique(n_events$Sample)){
+  #       # get the events for this sample
+  #       sum_events = c(sum_events, nrow(n_events[n_events$Sample == s, ]))
+  #     }
+  #     
+  #     
+  #     
+  #     # get the 95% HPD
+  #     for (q in seq(0.05, 1.0, 0.05)){
+  #       # get the quantiles
+  #       moving_avg = rbind(moving_avg, data.frame(
+  #         Time = i,
+  #         Lineage = l,
+  #         lower = quantile(sum_events, q/2),
+  #         upper = quantile(sum_events, 1-q/2),
+  #         q = q,
+  #         type="All events involving HPAI offsprings"
+  #       ))
+  #     }
+  #     
+  #     for (e in event_types){
+  #       # check if lineages is in e, otherwise, next
+  #       if (!grepl(l, e)){
+  #         next
+  #       }
+  #       # get the number of events for this sample and lineage
+  #       n_events_e = n_events[n_events$Event == e, ]
+  #       
+  #       # for each sample, count how many events there are
+  #       sum_events = c()
+  #       for (s in unique(n_events$Sample)){
+  #         # get the events for this sample
+  #         n = nrow(n_events_e[n_events_e$Sample == s, ])
+  #         # d = nrow(n_events[n_events$Sample == s, ])
+  #         sum_events = c(sum_events, n)
+  #       }
+  #       
+  #       
+  #       # get the 95% HPD
+  #       for (q in seq(0.05, 1.0, 0.05)){
+  #         # get the quantiles
+  #         moving_avg = rbind(moving_avg, data.frame(
+  #           Time = i,
+  #           Lineage = l,
+  #           # lower = mean(sum_events),
+  #           # upper = mean(sum_events),
+  #           lower = quantile(sum_events, q/2),
+  #           upper = quantile(sum_events, 1-q/2),
+  #           q = q,
+  #           type=e
+  #         ))
+  #       }
+  #     }
+  #   }
+  # }
   
   # rename types to events between HPAI and LPAI and events only involving HPAI lineages
   # moving_avg$type[moving_avg$type == "HPAI+LPAI"] = "Events between HPAI and LPAI lineages"
   # moving_avg$type[moving_avg$type == "HPAI"] = "Events only involving HPAI lineages"
   # moving_avg$type[moving_avg$type == "LPAI"] = "Events only involving LPAI lineages"
   
-  moving_avg$Time = as.Date(moving_avg$Time)
+  # moving_avg$Time = as.Date(moving_avg$Time)
+  # 
+  # dat = moving_avg[moving_avg$Lineage=="HPAI", ]
+  # dat2 = moving_avg[moving_avg$Lineage=="HPAI" &
+  #                     moving_avg$type == "Events between HPAI and LPAI lineages",]
+  # 
+  # 
+  # # plot the moving average
+  # p3 = ggplot(data = dat, aes(x=Time, y=upper, group=interaction(q, type))) +
+  #   geom_ribbon(aes(ymin=lower, ymax=upper, fill=type), alpha=0.2) +
+  #   scale_fill_manual(values=c("HPAI"="#E41A1C", "HPAI+LPAI"="#377EB8"), name="Type") +
+  #   
+  #   geom_line(data=dat2, aes(x=Time, y=upper*20), color="#377EB8", size=0.5) +
+  #   scale_y_continuous(sec.axis = sec_axis(~./20, name="average proportion of\nevents with LPAI lineages")) +
+  #   new_scale_color()+
+  #   geom_line(data=smoothed_case_data, aes(x=date, y=positivity*20, color=type, group=type), method=NA, size=0.5) +
+  #   scale_color_manual(values=c("HPAI"="#E41A1C", "LPAI"="#377EB8"), name="Type") +
+  #   ylab("\n moving average of\nthe number of reassortment events") +
+  #   coord_cartesian(ylim=c(0, 20)) +
+  #   theme_minimal() 
+  # plot(p3)
   
-  dat = moving_avg[moving_avg$Lineage=="HPAI", ]
-  dat2 = moving_avg[moving_avg$Lineage=="HPAI" &
-                      moving_avg$type == "Events between HPAI and LPAI lineages",]
-  
-  
-  # plot the moving average
-  p3 = ggplot(data = dat, aes(x=Time, y=upper, group=interaction(q, type))) +
-    geom_ribbon(aes(ymin=lower, ymax=upper, fill=type), alpha=0.2) +
-    scale_fill_manual(values=c("HPAI"="#E41A1C", "HPAI+LPAI"="#377EB8"), name="Type") +
-    
-    geom_line(data=dat2, aes(x=Time, y=upper*20), color="#377EB8", size=0.5) +
-    scale_y_continuous(sec.axis = sec_axis(~./20, name="average proportion of\nevents with LPAI lineages")) +
-    new_scale_color()+
-    geom_line(data=smoothed_case_data, aes(x=date, y=positivity*20, color=type, group=type), method=NA, size=0.5) +
-    scale_color_manual(values=c("HPAI"="#E41A1C", "LPAI"="#377EB8"), name="Type") +
-    ylab("\n moving average of\nthe number of reassortment events") +
-    coord_cartesian(ylim=c(0, 20)) +
-    theme_minimal() 
-  plot(p3)
+  # flip the axis of p_co
   
   
   
-  
-  p_prob <- plot_grid(p1, p2, ncol=2, labels=c('B', 'C'), align="h", axis="l", rel_heights=c(1, 1))
-  plot(p_prob)
-  p_right <- plot_grid(p_prob, p_co, p3, labels=c('','D', 'E'), ncol=1, align="v", rel_heights=c(1, 1.5, 1))
-  plot(p_right)
-  pcomp <- plot_grid(p_tree, p_right, labels=c('A',''), ncol=2, align="h", axis="l", rel_widths=c(1, 1.5))
-  plot(pcomp)
-  
-  if (ind){
-    ggsave(pcomp, filename="../../Figures/h5n1_reassortment_independent.pdf", width=12, height=8)
-  }else{
-    ggsave(pcomp, filename="../../Figures/h5n1_reassortment_dependent.pdf", width=12, height=8)
-  }
-  
-  # plot the moving average
-  p = ggplot(moving_avg[moving_avg$Lineage=="HPAI", ], aes(x=Time, y=upper, group=q)) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.2, fill="#546E7A") +
-    ylab("180 day moving averge of\nthe number of reassortment events\nwith HPAI offspring") +
-    theme_minimal() + 
-    new_scale_color() +
-    ylim(0, 20) +
-    facet_grid(Lineage~type)
-  plot(p)
-  
-  ggsave(p, filename="../../Figures/h5n1_HPAI_moving_average.pdf", width=8, height=6)
-  # plot the moving average
-  p = ggplot(moving_avg[moving_avg$Lineage=="LPAI", ], aes(x=Time, y=upper, group=q)) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.2, fill="#546E7A") +
-    ylab("180 day moving averge of\nthe number of reassortment events\nwith HPAI offspring") +
-    theme_minimal() +
-    facet_grid(Lineage~type)
-  plot(p)
-  
-  ggsave(p, filename="../../Figures/h5n1_LPAI_moving_average.pdf", width=8, height=6)
+  # # plot the moving average
+  # p = ggplot(moving_avg[moving_avg$Lineage=="HPAI", ], aes(x=Time, y=upper, group=q)) +
+  #   geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.2, fill="#546E7A") +
+  #   ylab("180 day moving averge of\nthe number of reassortment events\nwith HPAI offspring") +
+  #   theme_minimal() + 
+  #   new_scale_color() +
+  #   ylim(0, 20) +
+  #   facet_grid(Lineage~type)
+  # plot(p)
+  # 
+  # ggsave(p, filename="../../Figures/h5n1_HPAI_moving_average.pdf", width=8, height=6)
+  # # plot the moving average
+  # p = ggplot(moving_avg[moving_avg$Lineage=="LPAI", ], aes(x=Time, y=upper, group=q)) +
+  #   geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.2, fill="#546E7A") +
+  #   ylab("180 day moving averge of\nthe number of reassortment events\nwith HPAI offspring") +
+  #   theme_minimal() +
+  #   facet_grid(Lineage~type)
+  # plot(p)
+  # 
+  # ggsave(p, filename="../../Figures/h5n1_LPAI_moving_average.pdf", width=8, height=6)
   
   lineage_colors <- c(
     HPAI    = "#E41A1C",  # red
@@ -723,7 +594,7 @@ for (ind in c(TRUE, FALSE)){
     # get the segment name
     segment = segment_order[s]
     # read in the tree
-    tree = read.beast(paste0("./combined/HLHxNx.independent.", segment, ".tree"))
+    tree = read.beast(paste0("./combined/HLHxNx.constant.", segment, ".tree"))
     # plot the tree, coloring by the trait HPAI+LPAI
     
     # convert mrsi to decimal year
@@ -746,13 +617,14 @@ for (ind in c(TRUE, FALSE)){
         legend.box.background = element_blank()   # box around grouped legends
         
       ) +
+      scale_x_continuous(breaks = seq(2020, 2025, 2), labels = seq(2020, 2025, 2))+  # Every 2 years
       # new_scale_color() +
-      geom_tippoint(color="black", size=1.5) +
+      geom_tippoint(color="black", size=1) +
       # scale_size_manual(values=c(1, 2.5), name="cow isolate") +
       # new_scale("size")+
-      geom_tippoint(aes(color = type), size=1)+
+      geom_tippoint(aes(color = type), size=0.5)+
       ylim(1, 450) 
-    
+
     
     p <- p +
       annotate("rect", xmin = 2020, xmax = 2020.5, ymin = -Inf, ymax = Inf,
@@ -774,6 +646,19 @@ for (ind in c(TRUE, FALSE)){
     
     tree_plots[[s-1]] <- p
   }
+  
+  p_righ <- plot_grid(tree_plots[[5-1]]+theme(legend.position="none"), tree_plots[[7-1]]+theme(legend.position="none"), labels=c('C','D'), 
+                      ncol=2, align="h", axis="l")
+  p_top <- plot_grid(p_co, p_righ, labels=c('B',''), ncol=1, align="h", axis="l", rel_heights=c(0.5, 1))
+  pcomp <- plot_grid(p_tree, p_top, labels=c('A',''), ncol=2, align="h", axis="l", rel_widths=c(1, 0.5))
+  plot(pcomp)
+  
+  if (ind){
+    ggsave(pcomp, filename="../../Figures/Figure2.pdf", width=12, height=8)
+  }else{
+    ggsave(pcomp, filename="../../Figures/h5n1_reassortment_dependent.pdf", width=12, height=8)
+  }
+  
   
   
   # 1) extract the legend from one tree plot
@@ -813,7 +698,7 @@ for (ind in c(TRUE, FALSE)){
   # 5) render and save
   print(combined_trees)
   if (ind){
-    ggsave(combined_trees,filename = "../../Figures/h5n1_all_segment_trees_independent.pdf",
+    ggsave(combined_trees,filename = "../../Figures/h5n1_all_segment_trees_constant.pdf",
            width = 12, height = 8)
   }else{
     ggsave(combined_trees,filename = "../../Figures/h5n1_all_segment_trees_dependent.pdf",

@@ -37,14 +37,14 @@
     </traitSet>
 
 
-    <run spec="coupledMCMC.CoupledMCMC" chainLength="25000000" chains="4" target="0.9">
+    <run spec="MCMC" chainLength="25000000">
         <state  storeEvery="50000">
             <stateNode id="seg1tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
             <stateNode id="seg2tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
             <stateNode id="seg3tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
 
-            <stateNode id="sigma" spec="RealParameter" lower="0.25" value="1"/>
-            <stateNode id="sigma2" spec="RealParameter" lower="0.25" value="2"/>
+            <stateNode id="sigma" spec="RealParameter" lower="0.25" value="0.5"/>
+            <stateNode id="sigma2" spec="RealParameter" lower="0.25" value="0.5"/>
             <stateNode id="popSize" spec="RealParameter" value="1.0293"/>
             <stateNode id="reassortmentRate" spec="RealParameter" lower="-10" value="0.1211"/>
 
@@ -77,19 +77,19 @@
                 <traitSet idref="traitSet"/>
 
                 <populationModel spec="ConstantPopulation">
-                    <popSize spec="RealParameter" value="0.095922"/>
+                    <popSize spec="RealParameter" value="1"/>
                 </populationModel>
 
-                <reassortmentRate spec="RealParameter" value="0.47263"/>
+                <reassortmentRate spec="RealParameter" value="1"/>
             </stateNode>
         </state>
 
-        <init spec='beast.base.evolution.tree.ClusterTree' id='UPGMATree.t:XYZ26'
+        <!-- <init spec='beast.base.evolution.tree.ClusterTree' id='UPGMATree.t:XYZ26'
           initial="@seg1tree" clusterType='upgma' taxa='@seg1align'/>
 
         <init spec='coalre.util.InitFromTree' id='initnetwork'
           tree="@seg1tree" network='@network'>
-        </init>
+        </init> -->
 
 
         <init spec="SegmentTreeInitializer" network="@network">
@@ -138,7 +138,7 @@
             </distribution>
 
             <distribution id="prior" spec="CompoundDistribution">
-                <distribution id="networkPrior" spec="CoalescentWithReassortment" maxHeight="2000" redFactor="0.01">
+                <distribution id="networkPrior" spec="CoalescentWithReassortment">
                     <networkIntervals spec="NetworkIntervals" network="@network"/>
 
                     <!-- isconstant-->
@@ -180,8 +180,13 @@
 
                     <!-- isinfectedSkyline-->
                     <distribution spec="Prior">
-                        <x spec="coalre.dynamics.Difference" arg="@InfectedToRho"/>
+                        <x spec="coalre.dynamics.Difference" arg="@InfectedToRho" independentAfter="insert_independent_after"/>
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma2"/>
+                    </distribution>
+
+                    <distribution spec="Prior">
+                        <x spec="mascot.util.Final" arg="@InfectedToRho"/>
+                        <distr spec="beast.base.inference.distribution.Normal" mean="-15" sigma="0.5"/>
                     </distribution>
 
 
@@ -205,7 +210,7 @@
 
 
 
-        <operator id="FixMeanMutationRatesOperator" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="3">
+        <operator id="FixMeanMutationRatesOperator" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.5">
             <parameter idref="mutationRate.s:seg1"/>
             <parameter idref="mutationRate.s:seg2"/>
             <parameter idref="mutationRate.s:seg3"/>
@@ -243,8 +248,8 @@
             <operator id="AVMNOperator.Mascot" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="1.0">
                 <transformations id="AVMNSumTransform.Mascot" spec="operator.kernel.Transform$LogConstrainedSumTransform"/>
                 <transformations id="AVMNLogTransform.Mascot" spec="operator.kernel.Transform$LogTransform">
-                    <f idref="sigma"/>
-                    <f idref="sigma2"/>
+                    <!-- <f idref="sigma"/>
+                    <f idref="sigma2"/> -->
                 </transformations>
                 <transformations id="AVMNNoTransform.Mascot" spec="operator.kernel.Transform$NoTransform">
                     <f idref="InfectedToRho"/>
@@ -262,7 +267,7 @@
         <operator id="InfectedToRho.ScalerX.t2" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@InfectedToRho" scaleFactor="0.5" weight="3.0"/>
         <operator id="SkylineNe.camel.ScalerX.t2" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@logNe" scaleFactor="0.5" weight="3.0"/>
 
-        <operator id="InfectedToRhoScaler1.s:" spec="AdaptableOperatorSampler" weight="3.0">
+        <!-- <operator id="InfectedToRhoScaler1.s:" spec="AdaptableOperatorSampler" weight="3.0">
             <parameter idref="sigma"/>
             <operator idref="AVMNOperator.Mascot"/>
             <operator id="InfectedToRho.ScalerX1.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@sigma" scaleFactor="0.5" weight="1.0"/>
@@ -271,11 +276,11 @@
             <parameter idref="sigma2"/>
             <operator idref="AVMNOperator.Mascot"/>
             <operator id="InfectedToRho.ScalerX2.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@sigma2" scaleFactor="0.5" weight="1.0"/>
-        </operator>
+        </operator> -->
 
         <!--isinfectedSkyline -->
 
-            <operator id="ClockRateScaler.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@clockRate.c" scaleFactor="0.5" weight="3.0"/>
+            <!-- <operator id="ClockRateScaler.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@clockRate.c" scaleFactor="0.5" weight="3.0"/> -->
 
         <operator id="gammaShapeScaler.s:seg1" spec="AdaptableOperatorSampler" weight="0.25">
             <parameter idref="gammaShape.s:seg1"/>
@@ -397,17 +402,17 @@
                 <segmentTree idref="seg2tree"/>
                 <segmentTree idref="seg3tree"/>
             </operator>
-            <operator spec="AddRemoveReassortmentCoalescent" randomlySampleAttachmentEdge="true" coalescentWithReassortment="@networkPrior" network="@network" lambda="1.0" weight="30.0" divertOneSegment="true">
+            <operator spec="AddRemoveReassortmentCoalescent" randomlySampleAttachmentEdge="false" coalescentWithReassortment="@networkPrior" network="@network" lambda="1.0" weight="30.0" divertOneSegment="false">
                 <segmentTree idref="seg1tree"/>
                 <segmentTree idref="seg2tree"/>
                 <segmentTree idref="seg3tree"/>
             </operator>
-            <operator spec="AddRemoveReassortmentCoalescent" randomlySampleAttachmentEdge="true" coalescentWithReassortment="@networkPrior" network="@network" lambda="5.0" weight="30.0" divertOneSegment="true">
+            <operator spec="AddRemoveReassortmentCoalescent" randomlySampleAttachmentEdge="false" coalescentWithReassortment="@networkPrior" network="@network" lambda="5.0" weight="30.0" divertOneSegment="false">
                 <segmentTree idref="seg1tree"/>
                 <segmentTree idref="seg2tree"/>
                 <segmentTree idref="seg3tree"/>
             </operator>
-            <operator spec="AddRemoveReassortmentCoalescent" randomlySampleAttachmentEdge="true" coalescentWithReassortment="@networkPrior" network="@network" lambda="15.0" weight="30.0" divertOneSegment="true">
+            <operator spec="AddRemoveReassortmentCoalescent" randomlySampleAttachmentEdge="false" coalescentWithReassortment="@networkPrior" network="@network" lambda="15.0" weight="30.0" divertOneSegment="false">
                 <segmentTree idref="seg1tree"/>
                 <segmentTree idref="seg2tree"/>
                 <segmentTree idref="seg3tree"/>
@@ -445,11 +450,29 @@
             <segmentTree idref="seg3tree"/>
         </operator> -->
 
-        <operator id="NetworkScale" spec="NetworkScaleOperator" network="@network" weight="1.0" scaleFactor="0.8">
+        <operator id="NetworkScale" spec="NetworkScaleOperator" network="@network" weight="5" scaleFactor="0.8" doubleDiscount="insert_double_discount">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
+            <!-- <downParameter idref="clockRate.c"/> -->
+            <upLogScaledParameter idref="logNe"/>
+            <downLogScaledParameter idref="InfectedToRho"/>
         </operator>
+
+        <!-- <operator id="NetworkScaleLast" spec="NetworkScaleOperator" network="@network" weight="3" scaleFactor="0.8" doubleDiscount="true" lastInterval="10">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <upLogScaledParameter idref="logNe"/>
+            <downLogScaledParameter idref="InfectedToRho"/>
+        </operator> -->
+
+        <!-- <operator id="NetworkScale" spec="NetworkScaleOperator" network="@network" weight="1.0" scaleFactor="0.8">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <downParameter idref="clockRate.c"/>
+        </operator> -->
 
         <operator id="NetworkScaleIndependently" scaleIntervalsIndependently="true" spec="NetworkScaleOperator" network="@network" weight="3.0" scaleFactor="0.8">
             <segmentTree idref="seg1tree"/>

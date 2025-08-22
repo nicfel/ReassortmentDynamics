@@ -767,8 +767,6 @@ def make_tree(data,ll=None,verbose=False):
     stored_i=None ## store the i at the end of the loop, to make sure we haven't gotten stuck somewhere in an infinite loop
 
     while i < len(data): ## while there's characters left in the tree string - loop away
-        if stored_i == i and verbose==True:
-            print('%d >%s<'%(i,data[i]))
         # print(i,data[i],data[i:i+10])
         assert (stored_i != i),'\nTree string unparseable\nStopped at >>%s<<\nstring region looks like this: %s'%(data[i],data[i:i+5000]) ## make sure that you've actually parsed something last time, if not - there's something unexpected in the tree string
         stored_i=i ## store i for later
@@ -1040,10 +1038,7 @@ def loadNexus(tree_path,tip_regex='\|([0-9]+\-[0-9]+\-[0-9]+)',date_fmt='%Y-%m-%
             if cerberus is not None:
                 
                 tipDates.append(decimalDate(cerberus.group(1),fmt=date_fmt,variable=variableDate))
-        
-        print(tipDates)
-        print(len(mostRecentSample))
-        
+                
         if len(mostRecentSample)>0:
             highestTip=decimalDate(mostRecentSample,fmt=date_fmt,variable=False)
         else:
