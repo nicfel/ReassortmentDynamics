@@ -75,7 +75,6 @@ process_tree <- function(tree_file, metadata, most_recent_date) {
 
 # Process all trees in folder
 tree_files <- list.files(tree_folder, pattern = "*.tree$", full.names = TRUE)
-
 all_results <- map_dfr(tree_files, ~ process_tree(.x, metadata, most_recent_date))
 
 
@@ -89,8 +88,19 @@ all_results <- all_results %>%
     location == "mis" ~ "mississippi_flyway",
     location == "pac" ~ "pacific_flyway",
     location == "mis+cen" ~ "mississippi_flyway",
-    TRUE ~ location
-  ))
+    TRUE ~ location))
+
+
+
+
+tr_p <- read.beast("MCC/HPAI_HA_northamerica_targeted_dta.mcc.tree")
+
+tip_data_p <- tibble(label = tr_p@phylo$tip.label) %>%
+  mutate(strain = str_split_fixed(label, "\\|", 2)[,1])
+
+treedata <- left_join(tip_data_p,metadata, by = "strain" )
+genoflu_over10 <- names(which(table(treedata$genoFLU) > 10))
+
 
 
 # Function to calculate MRCA-to-first-taxon branch length per genoFLU group
@@ -246,90 +256,24 @@ p +
 ####################################
 segment_order <- c("NS", "MP", "NA", "NP", "HA", "PA", "PB1", "PB2")
 
-
 plot_df <- all_results %>%
+  filter(genoFLU %in% genoflu_over10) %>%
   filter(!str_detect(genoFLU, "Minor")) %>%
   filter(!str_detect(genoFLU, "Unseen")) %>%
   filter(!str_detect(genoFLU, "divergent")) %>%
-  mutate(tree_file = str_remove_all(tree_file, "_northamerica_targeted_dta\\.mcc\\.tree|HPAI_")) %>%
-  mutate(location = ifelse(location == "mississippi_flyway+central_flyway+", "mississippi_flyway", location))
-
-plot_df <- plot_df %>%
+  mutate(tree_file = str_remove_all(tree_file,"_northamerica_targeted_dta\\.mcc\\.tree|HPAI_")) %>%
   mutate(
-tree_file = factor(tree_file, levels = segment_order))
-                   
-                   
+    location = ifelse(
+      location == "mississippi_flyway+central_flyway+",
+      "mississippi_flyway",
+      location),
+    tree_file = factor(tree_file, levels = segment_order))
 
 flyway_colors <- c(
   atlantic_flyway    = "#4274CE",
   central_flyway     = "#CEB541",
   mississippi_flyway = "#69B091",
-  pacific_flyway     = "#E56C2F"
-)
-
-# build layers across all locations
-p <- ggplot()
-locations <- unique(plot_df$location)
-
-for (i in seq_along(locations)) {
-  loc <- locations[i]
-  df_loc <- plot_df %>% filter(location == loc) 
-  
-  if (i > 1) p <- p + new_scale("alpha")
-  
-  
-  p <- p +
-    geom_point(
-      data = df_loc,
-      aes(
-        x = tmrca_decimal_date,
-        y = tree_file, alpha = location_prob), color = flyway_colors[loc], size = 5) +
-    scale_alpha(range = c(0.3, 1), name = paste0(loc, " prob"))
-}
-
-p
-  
-p +
-  facet_wrap(~ genoFLU, ncol = 4 ) +
-  labs(
-    title = "TMRCA estimates across all genotypes (excluding Minor)",
-    x = "Date",
-    y = "Segement") + 
-  theme_minimal(base_size = 14) 
-
-########################
-plot_df <- all_results %>%
-  filter(!str_detect(genoFLU, "Minor")) %>%
-  filter(!str_detect(genoFLU, "Unseen")) %>%
-  filter(!str_detect(genoFLU, "divergent")) %>%
-  mutate(tree_file = str_remove_all(tree_file, "_northamerica_targeted_dta\\.mcc\\.tree|HPAI_")) %>%
-  mutate(
-    genoFLU = factor(genoFLU, levels = sort(unique(genoFLU))),
-    geno_segment = paste(genoFLU, tree_file, sep = " | ")) %>%
-  mutate(location = ifelse(location == "central_flyway+mississippi_flyway", "mississippi_flyway", location))
-
-
-x_range <- max(plot_df$tmrca_decimal_date, na.rm = TRUE) - min(plot_df$tmrca_decimal_date, na.rm = TRUE)
-x_offset <- ifelse(is.finite(x_range) & x_range > 0, x_range * 0.02, 0.01)
-
-# Build HA label table: only genotypes that have a HA row will get a label
-ha_labels <- plot_df %>%
-  filter(str_detect(tree_file, regex("HA$", ignore_case = TRUE))) %>%
-  group_by(genoFLU) %>%
-  ungroup() %>%
-  mutate(
-    x_label = tmrca_decimal_date + x_offset,
-    y_label = paste(genoFLU, tree_file, sep = " | ")
-  )
-
-# plotting
-
-flyway_colors <- c(
-  atlantic_flyway    = "#4274CE",
-  central_flyway     = "#CEB541",
-  mississippi_flyway = "#69B091",
-  pacific_flyway     = "#E56C2F"
-)
+  pacific_flyway     = "#E56C2F")
 
 p <- ggplot()
 locations <- unique(plot_df$location)
@@ -338,81 +282,77 @@ for (i in seq_along(locations)) {
   loc <- locations[i]
   df_loc <- plot_df %>% filter(location == loc)
   
-  if (i > 1) p <- p + ggnewscale::new_scale("alpha")
+  if (i > 1) p <- p + new_scale("alpha")
   
   p <- p +
     geom_errorbarh(
       data = df_loc,
       aes(
-        y = geno_segment,
+        y = tree_file,
         xmin = tmrca_decimal_date_low,
         xmax = tmrca_decimal_date_high,
         alpha = location_prob),
       color = flyway_colors[loc],
-      height = 0.2,
-      linewidth = 1.2,
-      show.legend = FALSE) +
+      height = 0.25,
+      linewidth = 1) +
     geom_point(
       data = df_loc,
       aes(
         x = tmrca_decimal_date,
-        y = geno_segment,
+        y = tree_file,
         alpha = location_prob),
       color = flyway_colors[loc],
-      size = 4,
-      show.legend = FALSE) +
+      size = 3) +
     scale_alpha(range = c(0.3, 1), name = paste0(loc, " prob"))
+  
+  df_grey <- df_loc %>% filter(location_prob < 0.5)
+  
+  p <- p +
+    geom_errorbarh(data = df_grey, aes(
+        y = tree_file,
+        xmin = tmrca_decimal_date_low,
+        xmax = tmrca_decimal_date_high),
+      color = "grey70",
+      height = 0.25,
+      linewidth = 1) +
+    geom_point(data = df_grey, aes(x = tmrca_decimal_date,
+        y = tree_file),
+      color = "grey70",
+      size = 3)
 }
 
-# add genotype labels next to each genotype's HA point
-p <- p +
-  geom_text(
-    data = ha_labels,
-    aes(x = x_label, y = y_label, label = genoFLU),
-    inherit.aes = FALSE,
-    hjust = 0,
-    fontface = "bold",
-    size = 5) +
+pf <- p +
+  facet_wrap(~ genoFLU, ncol = 4) +
   labs(
     title = "TMRCA estimates across all genotypes (excluding Minor)",
     x = "Date",
-    y = "Genotype | Segment") +
-  theme_minimal(base_size = 20) +
-  theme(axis.text.y = element_text(size = 8))
+    y = "Segment") +
+  theme_minimal(base_size = 14)
 
-p
 
+pf
+
+ggsave("flyway_combinedtmcra_sub10_pp50-facet.pdf", plot = pf, height = 12, width = 14, units = "in")
 
 ##################
 segment_order <- c("NS", "MP", "NA", "NP", "HA", "PA", "PB1", "PB2")
 
-
 plot_df <- all_results %>%
+  filter(genoFLU %in% genoflu_over10) %>%
   filter(!str_detect(genoFLU, "Minor")) %>%
   filter(!str_detect(genoFLU, "Unseen")) %>%
   filter(!str_detect(genoFLU, "divergent")) %>%
   mutate(tree_file = str_remove_all(tree_file, "_northamerica_targeted_dta\\.mcc\\.tree|HPAI_")) %>%
-  mutate(location = ifelse(location == "central_flyway+mississippi_flyway", "mississippi_flyway", location))
-
-
-plot_df <- plot_df %>%
-  mutate(
-    tree_file = factor(tree_file, levels = segment_order))
-
+  mutate(location = ifelse(location == "central_flyway+mississippi_flyway","mississippi_flyway",location),
+    tree_file = factor(tree_file, levels = segment_order),
+    genoFLU = factor(genoFLU, levels = sort(unique(genoFLU))),
+    geno_segment = paste(genoFLU, tree_file, sep = " | "))
 
 flyway_colors <- c(
   atlantic_flyway    = "#4274CE",
   central_flyway     = "#CEB541",
   mississippi_flyway = "#69B091",
-  pacific_flyway     = "#E56C2F"
-)
-
-plot_df <- plot_df %>%
-  mutate(
-    tree_file = factor(tree_file, levels = segment_order),
-    genoFLU = factor(genoFLU, levels = sort(unique(genoFLU))),
-    geno_segment = paste(genoFLU, tree_file, sep = " | "))
-
+  pacific_flyway     = "#E56C2F")
 
 p <- ggplot()
 locations <- unique(plot_df$location)
@@ -424,10 +364,7 @@ for (i in seq_along(locations)) {
   if (i > 1) p <- p + new_scale("alpha")
   
   p <- p +
-    # horizontal error bars
-    geom_errorbarh(
-      data = df_loc,
-      aes(
+    geom_errorbarh(data = df_loc,aes(
         y = geno_segment,
         xmin = tmrca_decimal_date_low,
         xmax = tmrca_decimal_date_high,
@@ -435,7 +372,6 @@ for (i in seq_along(locations)) {
       color = flyway_colors[loc],
       height = 0.2,
       linewidth = 1.2) +
-    # points
     geom_point(
       data = df_loc,
       aes(
@@ -445,18 +381,36 @@ for (i in seq_along(locations)) {
       color = flyway_colors[loc],
       size = 2) +
     scale_alpha(range = c(0.3, 1), name = paste0(loc, " prob"))
+  
+  df_grey <- df_loc %>% filter(location_prob < 0.5)
+  
+  p <- p +
+    geom_errorbarh(data = df_grey,
+      aes(
+        y = geno_segment,
+        xmin = tmrca_decimal_date_low,
+        xmax = tmrca_decimal_date_high),
+      color = "grey70",
+      height = 0.2,
+      linewidth = 1.2) +
+    geom_point(
+      data = df_grey,
+      aes(
+        x = tmrca_decimal_date,
+        y = geno_segment),
+      color = "grey70",
+      size = 2)
 }
 
-
-p +
+p1 <- p +
   labs(
     title = "TMRCA estimates across all genotypes (excluding Minor)",
     x = "Date",
     y = NULL) +
   facet_grid(
-    genoFLU ~ ., 
-    scales = "free_y", 
-    space = "free_y", 
+    genoFLU ~ .,
+    scales = "free_y",
+    space = "free_y",
     switch = "y") +
   theme_minimal(base_size = 14) +
   theme(
@@ -468,43 +422,9 @@ p +
     panel.spacing.y = unit(0.025, "lines")) +
   scale_x_continuous(limits = c(2019, 2025))
 
+p1
 
-p_top <- p +
-  labs(
-    title = "TMRCA estimates across all genotypes (excluding Minor)",
-    x = NULL,
-    y = NULL) +
-  facet_grid(
-    genoFLU ~ ., 
-    scales = "free_y", 
-    space = "free_y", 
-    switch = "y") +
-  theme_minimal(base_size = 18) +
-  theme(
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank(),
-    strip.placement = "outside",
-    strip.text.y.left = element_text(angle = 0, size = 12, face = "bold"),
-    strip.background = element_blank(),
-    panel.spacing.y = unit(0.0000005, "lines"),
-    legend.position = c(0.05, 0.05),          
-    legend.justification = c("left", "bottom"),
-    legend.background = element_rect(fill = alpha("white", 0.7), color = NA),
-    legend.key.size = unit(0.4, "cm"),  
-    legend.text = element_text(size = 8),     
-    legend.title = element_text(size = 9)) +
-  scale_x_continuous(limits = c(2020, 2025))
-
-p_top
-# Bottom plot (weekly counts)
-
-# flywy colors defined
-flyway_colors <- c(
-  "Pacific Flyway" = "#E56C2F",
-  "Central Flyway" = "#CEB541",
-  "Mississippi Flyway" = "#69B091",
-  "Atlantic Flyway" = "#4274CE"
-)
+ggsave("flyway_combinedtmcra_sub10_pp50.pdf", plot = p1, height = 8.5, width = 12, units = "in")
 
 # for dataframe for botoom panel with detections see detections_for_figure.R script
 
@@ -531,90 +451,3 @@ p_combined <- p_top / p_bottom +
   plot_layout(heights = c(4, 1))
 
 p_combined
-
-#######################################
-
-
-##############################
-# edge colorings based on the state
-# Based on reweards  visualization
-# use the MCC tree with edges annotated to the branches
-
-beast_tree <- read.beast("MCC/ordgooseduck_MKJ_HA.mcc.tree")
-data<-as_tibble(beast_tree)
-## filter data
-df<- data %>% select(ord,height)
-
-# input date of earliest seq
-df <- df %>% mutate(year = 2025.33 - as.numeric(height)) %>%
-  mutate(ord = sub("\\+.*", "", ord))
-## get the propotrion of rewards
-
-interval_size <- 1/52
-
-# Round or floor to weekly decimal intervals
-df_long_weekly <- df %>%
-  mutate(week_decimal = floor(year / interval_size) * interval_size) %>%
-  group_by(week_decimal, ord) %>%
-  summarise(total_freq = sum(as.numeric(height)), .groups = "drop")
-
-all_weeks <- seq(min(df_long_weekly$week_decimal),
-                 max(df_long_weekly$week_decimal),
-                 by = interval_size)
-
-all_ords <- sort(unique(df_long_weekly$ord))
-
-df_long_weekly_complete <- df_long_weekly %>%
-  complete(week_decimal = all_weeks, ord = all_ords, fill = list(total_freq = 0))
-
-df_long_weekly_percent <- df_long_weekly_complete %>%
-  group_by(week_decimal) %>%
-  mutate(percent = total_freq / sum(total_freq) * 100) %>%
-  ungroup()
-
-p_week_decimal <- ggplot(df_long_weekly_percent, aes(x = week_decimal, y = percent, fill = ord)) +
-  geom_area(size = 0.2, alpha = 0.9) +
-  scale_y_continuous(labels = percent_format(scale = 1), expand = c(0,0)) +
-  xlim(2022,2025.33) +
-  labs(
-    title = "% Edges by Host Order (Weekly)",
-    x = "Year",
-    y = "Proportion",
-    fill = "Order") +
-  theme_minimal(base_size = 18) +
-  scale_fill_ptol()
-
-p_week_decimal
-
-# Save the plot
-ggsave("stacked_week_order.pdf", plot = p_week_decimal, height = 8.5, width = 11, units = "in")
-
-
-
-####################
-
-all_results <- read.csv("tmrca_results_flyway.csv")
-mixed <- all_results %>%
-  filter(!str_detect(genoFLU, "Minor")) %>%
-  filter(!str_detect(genoFLU, "Unseen")) %>%
-  filter(!str_detect(genoFLU, "divergent")) %>%
-  group_by(genoFLU) %>%
-  filter(n_distinct(location) > 1) %>%
-  ungroup()
-
-combo_df <- mixed %>%
-  group_by(genoFLU) %>%
-  summarise(
-    loc_combo = location 
-    %>% unique() 
-    %>% sort() 
-    %>% paste(collapse = "+"),.groups = "drop")
-
-loc_combo_proportions <- combo_df %>%
-  count(loc_combo, name = "count") %>%
-  mutate(proportion = count / sum(count))
-
-loc_combo_proportions
-
-write.csv(loc_combo_proportions,"loc_combo_genoflu_proportions.csv", row.names = FALSE)
-

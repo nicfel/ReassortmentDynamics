@@ -107,8 +107,8 @@ genoflu_over10 <- names(which(table(treedata$genoflu) > 10))
 
 
 ####################################
+s
 segment_order <- c("NS", "MP", "NA", "NP", "HA", "PA", "PB1", "PB2")
-
 
 plot_df <- all_results %>%
   filter(genoflu %in% genoflu_over10) %>%
@@ -116,15 +116,9 @@ plot_df <- all_results %>%
   filter(!str_detect(genoflu, "Unseen")) %>%
   filter(!str_detect(genoflu, "divergent")) %>%
   mutate(tree_file = str_remove_all(tree_file, "ordgooseduck_MKJ_")) %>%
-  mutate(tree_file = str_remove_all(tree_file, ".mcc.tree")) %>%
-  mutate(ord = sub("\\+.*", "", ord))
-  
-
-
-plot_df <- plot_df %>%
-  mutate(
-    tree_file = factor(tree_file, levels = segment_order))
-
+  mutate(tree_file = str_remove_all(tree_file, "\\.mcc\\.tree")) %>%
+  mutate(ord = sub("\\+.*", "", ord)) %>%
+  mutate(tree_file = factor(tree_file, levels = segment_order))
 
 order_colors <- c(
   acc   = "#0072B2",
@@ -135,10 +129,9 @@ order_colors <- c(
   nhm   = "#999933",
   pas   = "#E69F00",
   stri  = "#882255",
-  swan  = "#117733" 
+  swan  = "#117733"
 )
 
-# build layers across all ords
 p <- ggplot()
 ords <- unique(plot_df$ord)
 
@@ -149,29 +142,61 @@ for (i in seq_along(ords)) {
   if (i > 1) p <- p + new_scale("alpha")
   
   p <- p +
-    geom_point(data = df_ord,
-               aes(x = tmrca_decimal_date,
-                   y = tree_file, alpha = ord_prob),
-               color = order_colors[this_ord], size = 5 )  + scale_alpha(range = c(0.3, 1), name = paste0(this_ord, " prob"))
+    geom_errorbarh(
+      data = df_ord,
+      aes(
+        y = tree_file,
+        xmin = tmrca_decimal_date_low,
+        xmax = tmrca_decimal_date_high,
+        alpha = ord_prob),
+      color = order_colors[this_ord],
+      height = 0.25,
+      linewidth = 1) +
+    geom_point(
+      data = df_ord,
+      aes(
+        x = tmrca_decimal_date,
+        y = tree_file,
+        alpha = ord_prob),
+      color = order_colors[this_ord],
+      size = 5) +
+    scale_alpha(
+      range = c(0.3, 1),
+      name = paste0(this_ord, " prob"))
+  
+  df_grey <- df_ord %>% filter(ord_prob < 0.5)
+  
+  p <- p +
+    geom_errorbarh(
+      data = df_grey,
+      aes(
+        y = tree_file,
+        xmin = tmrca_decimal_date_low,
+        xmax = tmrca_decimal_date_high),
+      color = "grey70",
+      height = 0.25,
+      linewidth = 1) +
+    geom_point(data = df_grey, aes(
+        x = tmrca_decimal_date,
+        y = tree_file),
+      color = "grey70",
+      size = 5)
 }
 
-p
-
 p <- p +
-  facet_wrap(~ genoflu, ncol = 4 ) +
+  facet_wrap(~ genoflu, ncol = 4) +
   labs(
     title = "TMRCA estimates across all genotypes (excluding Minor)",
     x = "Date",
-    y = "Segement") + 
-  theme_minimal(base_size = 14) 
+    y = "Segment") +
+  theme_minimal(base_size = 14)
 
-p 
+p
 
-
-ggsave("faceted_genotype_tmcra_order.pdf", plot = p, height = 12, width = 11, units = "in")
-
+ggsave("faceted_genotype_tmcra_order.pdf",plot = p,height = 12,width = 11,units = "in")
 
 ##############################
+
 segment_order <- c("NS", "MP", "NA", "NP", "HA", "PA", "PB1", "PB2")
 
 plot_df <- all_results %>%
@@ -181,23 +206,34 @@ plot_df <- all_results %>%
   filter(!str_detect(genoflu, "divergent")) %>%
   mutate(
     tree_file = str_remove_all(tree_file, "ordgooseduck_MKJ_"),
-    tree_file = str_remove_all(tree_file, ".mcc.tree"),
+    tree_file = str_remove_all(tree_file, "\\.mcc\\.tree"),
     ord = sub("\\+.*", "", ord),
     tree_file = factor(tree_file, levels = segment_order),
     genoflu = factor(genoflu, levels = sort(unique(genoflu))),
     geno_segment = paste(genoflu, tree_file, sep = " | "))
 
+order_colors <- c(
+  acc   = "#0072B2",
+  cha   = "#009E73",
+  duck  = "#56B4E9",
+  gal   = "#D55E00",
+  goose = "#CC79A7",
+  nhm   = "#999933",
+  pas   = "#E69F00",
+  stri  = "#882255",
+  swan  = "#117733"
+)
+
 p <- ggplot()
 ords <- unique(plot_df$ord)
 
 for (i in seq_along(ords)) {
-  this_ord <- ords[i] 
-  df_ord <- plot_df %>% filter(ord == this_ord) 
+  this_ord <- ords[i]
+  df_ord <- plot_df %>% filter(ord == this_ord)
   
   if (i > 1) p <- p + new_scale("alpha")
   
   p <- p +
-    # horizontal error bars
     geom_errorbarh(
       data = df_ord,
       aes(
@@ -208,16 +244,29 @@ for (i in seq_along(ords)) {
       color = order_colors[this_ord],
       height = 0.2,
       linewidth = 1.2) +
-    # points
-    geom_point(
-      data = df_ord,
-      aes(
+    geom_point(data = df_ord,aes(
         x = tmrca_decimal_date,
         y = geno_segment,
         alpha = ord_prob),
       color = order_colors[this_ord],
       size = 2) +
-    scale_alpha(range = c(0.3, 1), name = paste0(this_ord, " prob"))
+    scale_alpha(
+      range = c(0.3, 1),
+      name = paste0(this_ord, " prob"))
+  
+  df_grey <- df_ord %>% filter(ord_prob < 0.5)
+  
+  p <- p +
+    geom_errorbarh(
+      data = df_grey,
+      aes(
+        y = geno_segment,
+        xmin = tmrca_decimal_date_low,
+        xmax = tmrca_decimal_date_high),
+      color = "grey70",
+      height = 0.2,
+      linewidth = 1.2) +
+    geom_point(data = df_grey,aes(x = tmrca_decimal_date, y = geno_segment), color = "grey70", size = 2)
 }
 
 p_final <- p +
@@ -226,9 +275,9 @@ p_final <- p +
     x = "Date",
     y = NULL) +
   facet_grid(
-    genoflu ~ ., 
-    scales = "free_y", 
-    space = "free_y", 
+    genoflu ~ .,
+    scales = "free_y",
+    space = "free_y",
     switch = "y") +
   theme_minimal(base_size = 14) +
   theme(
@@ -242,9 +291,7 @@ p_final <- p +
 
 p_final
 
-
-ggsave("figure_supp_allgeno_order.pdf", plot = p_final, height = 11, width = 11, units = "in")
-
+ggsave("figure_supp_allgeno_order.pdf",plot = p_final,height = 11,width = 11,units = "in")
 
 
 
@@ -317,7 +364,7 @@ p_week_decimal2 <- p_week_decimal +
     alpha = 0.8) +
   geom_text(
     data = plot_df,
-    aes(x = tmrca_decimal_date,label = genoflu,y= 95,color = ord),
+    aes(x = tmrca_decimal_date,label = genoflu,y= 1,color = ord),
     angle = 90,
     vjust = -0.2,
     size = 4,
@@ -345,7 +392,6 @@ plot_df <- all_results %>%
   filter(!str_detect(genoflu, "Minor")) %>%
   filter(!str_detect(genoflu, "Unseen")) %>%
   filter(!str_detect(genoflu, "divergent")) %>%
-  filter(ord_prob > 0.5) %>%
   mutate(
     tree_file = str_remove_all(tree_file, "ordgooseduck_MKJ_"),
     tree_file = str_remove_all(tree_file, ".mcc.tree"),
@@ -405,7 +451,7 @@ geno_monthly <- geno_monthly %>%
   mutate(Genotype = "Genotype segments")
 
 # Plot
-ggplot(monthly_counts, aes(x = year_month, y = rolling_avg, color = ord)) +
+sp <- ggplot(monthly_counts, aes(x = year_month, y = rolling_avg, color = ord)) +
   geom_line(size = 2) +
   geom_line(data = geno_monthly, aes(x = year_month, y = rolling_total, linetype = Genotype, color = Genotype), 
             size = 1) +
@@ -419,4 +465,9 @@ ggplot(monthly_counts, aes(x = year_month, y = rolling_avg, color = ord)) +
     y = "Rolling 3-Month Average Count",
     color = "Host") +
   theme_minimal(base_size = 18)
+
+
+sp
+
+ggsave("segemnts_genotype_host.pdf", plot = sp, height = 8.5, width = 12, units = "in")
 
