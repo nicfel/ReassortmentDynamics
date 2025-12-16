@@ -8,6 +8,7 @@ Amazon parrot,amazon_parrot,passerine,psittaciformes
 American Raven,american_raven,passerine,passeriformes
 American White Pelican,american_white_pelican,pelican,pelecaniformes
 american_coot,american_coot,coot,gruiformes
+american_goshawk,american_goshawk,hawk,accipitriformes
 american_green_winged_teal,american_green-winged_teal,duck,anseriformes
 american_oystercatcher,american_oystercatcher,wader,charadriiformes
 American_Pekin_duck,american_pekin_duck,duck,anseriformes
@@ -61,6 +62,7 @@ arctictern,arctic_tern,tern,charadriiformes
 ardeacinera,grey_heron,heron,pelecaniformes
 ardeacinerea,grey_heron,heron,pelecaniformes
 arenaria_interpres,ruddy_turnstone,wader,charadriiformes
+atlantic_puffin,atlantic_puffin,seabird,atlantic_puffin
 atlanticwhitesideddolphin,atlanticwhitesideddolphin,dolphin,artiodactyla
 avian,avian,avian,avian
 aythya_collaris,ring-necked_duck,duck,anseriformes
@@ -299,6 +301,7 @@ donkey,donkey,donkey,"	Perissodactyla"
 double-crested_cormorant,double-crested_cormorant,cormorant,suliformes
 doublecrestedcormorant,double-crested_cormorant,cormorant,suliformes
 dove,dove,dove,columbiformes
+dovekie,dovekie,seabird,charadriiformes
 duck,duck,duck,anseriformes
 duck_broiler,duck,duck,anseriformes
 duckbroiler,duck,duck,anseriformes
@@ -363,6 +366,8 @@ fulvous_whistling_duck,fulvous_whistling_duck,duck,anseriformes
 g.h,avian,avian,avian
 gadwall,gadwall,duck,anseriformes
 gadwall_duck,gadwall,duck,anseriformes
+gadwall_duck,gadwall_duck,duck,anseriformes
+gadwall_duck,gadwall_duck,duck,anseriformes
 gadwallduck,gadwall,duck,anseriformes
 gallus,gallus,chicken,galliformes
 gallus_gallus,chicken,chicken,galliformes
@@ -386,6 +391,7 @@ goosander,goosander,duck,anseriformes
 goose,goose,goose,anseriformes
 goshawk,northern_goshawk,raptor,accipitriformes
 grackle,grackle,passerine,passeriformes
+gray_seal,gray_seal,mammal,artiodactyla
 gray-crowedcrane,grey_crowned_crane,crane,gruiformes
 graygull,gray_gull,gull,charadriiformes
 grayheron,grey_heron,heron,pelecaniformes
@@ -397,6 +403,7 @@ great_cormorant,great_cormorant,cormorant,suliformes
 great_created_grebe,great_crested_grebe,grebe,podicipediformes
 great_crested_grebe,great_crested_grebe,grebe,podicipediformes
 great_egret,great_egret,heron,pelecaniformes
+great_shearwater,great_shearwater,shorebird,procellariiformes
 great-tailed grackle,great_tailed_grackle,grackle,passeriformes
 great-tailed_grackle,great-tailed_grackle,crow,passeriformes
 greatbarbet,great_barbet,barbet,piciformes
@@ -413,6 +420,7 @@ greatdrestedgrebe,great_crested_grebe,grebe,podicipediformes
 greategret,great_egret,heron,pelecaniformes
 greater_rhea,greater_rhea,rhea,rheiformes
 greater_sage_grouse,greater_sage_grouse,grouse,galliformes
+greater_yellowlegs,greater_yellowlegs,shorebird,charadriiformes
 greaterscaup,greater_scaup,duck,anseriformes
 greaterwhitefrontedgoose,greater_white-fronted_goose,goose,anseriformes
 greateryellowlegs,greateryellowlegs,gull,charadriiformes
@@ -441,6 +449,7 @@ gypaetusbarbatus,bearded_vulture,raptor,accipitriformes
 gyrfalcon,gyrfalcon,raptor,falconiformes
 harbor_seal,harbor_seal,seal,carnivora
 Harris's hawk,harris_hawk,hawk,accipitriformes
+harriss_hawk,harriss_hawk,hawk,accipitriformes
 hawaiiangoose,hawaiian_goose,goose,anseriformes
 hawk,hawk,raptor,accipitriformes
 hen,chicken,chicken,galliformes
@@ -460,6 +469,7 @@ house_finch,house_finch,passerine,passeriformes
 housecrow,house_crow,crow,passeriformes
 housesparrow,house_sparrow,passerine,passeriformes
 Human,human,human,human
+iceland_gull,iceland_gull,gull,charadriiformes
 indian_runner_duck,indian_runner_duck,duck,anseriformes
 indianrunnerduck,indian_runner_duck,duck,anseriformes
 japanese_white_eye,japanese_white-eye,passerine,passeriformes
@@ -573,6 +583,7 @@ northen_pintail,northern_pintail,duck,anseriformes
 northen_pintail,northern_pintail,duck,anseriformes
 northern_fulmar,northern_fulmar,seabird,procellariiformes
 northern_harrier,northern_harrier,hawk,accipitriformes
+northern_saw-whet_owl,northern_saw-whet_owl,owl,strigiformes
 northerngannet,northern_gannet,gannet,suliformes
 northerngoshawk,northern_goshawk,raptor,accipitriformes
 northernpintail,northern_pintail,duck,anseriformes
@@ -671,6 +682,7 @@ rhea,rhea,rhea,rheiformes
 ring_necked_duck,ring_necked_duck,duck,anseriformes
 ring-billed gull,ring-billed_gull,gull,charadriiformes
 ring-necked_pheasant,ring-necked_pheasant,pheasant,galliformes
+ringed_seal,ringed_seal,seabird,artiodactyla
 ringneckedduck,ring-necked_duck,duck,anseriformes
 robin,robin,passerine,passeriformes
 rockpigeon,rock_pigeon,pigeon,columbiformes
@@ -761,6 +773,7 @@ tadorna_tadorna,common_shelduck,duck,anseriformes
 taiwanesechicken,taiwanesechicken,chicken,galliformes
 teal,teal_duck,duck,anseriformes
 teal,teal_duck,duck,anseriformes
+teal,teal,duck,anseriformes
 texas,unknown,unknown,unknown
 thalasseussandvicensis,sandwich_tern,tern,charadriiformes
 thayers_gull,thayers_gull,gull,charadriiformes
@@ -814,6 +827,7 @@ whitestork,white_stork,stork,ciconiiformes
 whitetailedeagle,white-tailed_eagle,raptor,accipitriformes
 whooper_swan,whooper_swan,goose,anseriformes
 whooperswan,whooper_swan,goose,anseriformes
+whooping_crane,whooping_crane,crane,gruiformes
 whoopingswan,whooper_swan,goose,anseriformes
 wide_bird,avian,avian,avian
 widgeon,american_wigeon,duck,anseriformes
