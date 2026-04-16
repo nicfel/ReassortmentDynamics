@@ -17,8 +17,24 @@ rate_shifts = as.numeric(strsplit(rate_shift_str, " ")[[1]])
 set.seed(6465546)
 
 # Set the directory to the directory of the file
-this.dir <- dirname(parent.frame(2)$ofile)
-setwd(this.dir)
+# Try to get script directory, fallback to current directory
+tryCatch({
+  this.dir <- dirname(parent.frame(2)$ofile)
+  setwd(this.dir)
+}, error = function(e) {
+  # If running via Rscript, use current directory or script location
+  if (file.exists("./plot_Clade_comparison.R")) {
+    setwd(".")
+  } else {
+    # Try to find script location
+    args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("^--file=", args, value=TRUE)
+    if (length(file_arg) > 0) {
+      script_path <- sub("^--file=", "", file_arg)
+      setwd(dirname(script_path))
+    }
+  }
+})
 # plot the rate over time
 reassortment_rate = data.frame()
 # define the mrsi
@@ -59,6 +75,15 @@ lineage_colors <- c(
 )
 
 rerun = F
+
+# Run ClusterSizeComparison if output doesn't exist
+cluster_output = "./combined/HLHxNx.skygrowth.cluster_comparison.txt"
+if (!file.exists(cluster_output)){
+  print("Running ClusterSizeComparison...")
+  system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ClusterSizeComparison -burnin 0 ./combined/HLHxNx.skygrowth.trees ./combined/HLHxNx.skygrowth.cluster_comparison.txt"))
+} else {
+  print("Cluster size comparison file already exists, skipping...")
+}
 
 if (rerun){
   # run log combined on the skygrowth trees
@@ -525,11 +550,59 @@ for (s in seq(2, length(segment_order), 1)){
   tree_plots[[s-1]] <- p
 }
 
+# Read cluster comparison data and create plot
+cluster_file = "./combined/HLHxNx.skygrowth.cluster_comparison.txt"
+if (file.exists(cluster_file)){
+  cluster_data = read.table(cluster_file, header=TRUE, sep="\t")
+  
+  # Group by iteration and calculate probability for each iteration
+  iteration_probs = c()
+  
+  for (iter in unique(cluster_data$iteration)){
+    iter_data = cluster_data[cluster_data$iteration == iter, ]
+    
+    # Calculate probability that leafsWith > leafsWithout for this iteration
+    with_greater = sum(iter_data$leafsWith > iter_data$leafsWithout)
+    total_comparisons = nrow(iter_data)
+    prob_with_greater = with_greater / total_comparisons
+    
+    iteration_probs = c(iteration_probs, prob_with_greater)
+  }
+  
+  # Create histogram plot
+  cluster_prob_df = data.frame(prob = iteration_probs)
+  p_cluster = ggplot(cluster_prob_df, aes(x=prob)) +
+    geom_histogram(bins=30, alpha=0.7, fill="#808080", color="black", linewidth=0.5, aes(y=after_stat(density))) +
+    xlab("Probability (With > Without)") +
+    ylab("Density") +
+    xlim(0, 1) +
+    theme_minimal() +
+    theme(
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      axis.line = element_line(color="black"),
+      panel.border = element_blank()
+    )
+} else {
+  # Create empty plot if file doesn't exist
+  p_cluster = ggplot() +
+    annotate("text", x=0.5, y=0.5, label="Cluster comparison file not found", 
+             hjust=0.5, vjust=0.5) +
+    theme_void()
+}
+
 p_righ <- plot_grid(tree_plots[[5-1]]+theme(legend.position="none"), tree_plots[[7-1]]+theme(legend.position="none"), labels=c('C','D'), 
                     ncol=2, align="h", axis="l")
 p_top <- plot_grid(p_co, p_righ, labels=c('B',''), ncol=1, align="h", axis="l", rel_heights=c(0.5, 1))
-pcomp <- plot_grid(p_tree, p_top, labels=c('A',''), ncol=2, align="h", axis="l", rel_widths=c(1, 0.5))
+p_bottom <- plot_grid(p_cluster, labels=c('E'), ncol=1)
+pcomp <- plot_grid(p_tree, p_top, p_bottom, labels=c('A','',''), ncol=1, align="h", axis="l", rel_heights=c(1, 1, 0.5))
 plot(pcomp)
+
+# Check if ind variable exists, if not set to FALSE
+if (!exists("ind")){
+  ind = FALSE
+}
 
 if (ind){
   ggsave(pcomp, filename="../../Figures/Figure2.pdf", width=12, height=8)

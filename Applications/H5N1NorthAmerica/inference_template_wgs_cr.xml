@@ -55,7 +55,7 @@
             <stateNode id="seg8tree" spec="Tree" taxonset="@taxonSet" trait="@traitSet"/>
 
             <stateNode id="sigma" spec="RealParameter" lower="0.25" value="1"/>
-            <stateNode id="sigma2" spec="RealParameter" lower="0.25" value="1"/>
+            <stateNode id="sigma2" spec="RealParameter" lower="0.25" value="0.5"/>
             <stateNode id="popSize" spec="RealParameter" value="1.0293"/>
             <stateNode id="reassortmentRate" spec="RealParameter" lower="-10" value="0.1211"/>
 
@@ -234,7 +234,7 @@
             </distribution>
 
             <distribution id="prior" spec="CompoundDistribution">
-                <distribution id="networkPrior" spec="CoalescentWithReassortment" maxHeightRatio="1.0" redFactor="0.0">
+                <distribution id="networkPrior" spec="CoalescentWithReassortment">
                     <networkIntervals spec="NetworkIntervals" network="@network"/>
 
                     <!-- isconstant-->
@@ -244,12 +244,12 @@
                     
                     <!-- isISkyline-->
                     <populationModel id="splinePop" spec="coalre.dynamics.SkygrowthNeDynamics" logNe="@logNe" rateShifts="@rateShifts"/>
-                    <timeVaryingReassortmentRates id="splinePop2" spec="coalre.dynamics.SkygrowthReassortmentRatesFromSkygrowthNe" neToReassortment="@InfectedToRho" rateShifts="@rateShifts"/>
+                    <timeVaryingReassortmentRates id="splinePop2" spec="coalre.dynamics.SkygrowthReassortmentRatesFromSkygrowthNe" neToReassortment="@InfectedToRho" rateShifts="@rateShifts" finalGrowthRate="-0.1"/>
                     <!--isISkyline -->
 
                     <!-- isNeSkyline-->
                     <populationModel id="splinePop" spec="coalre.dynamics.SkygrowthNeDynamics" logNe="@logNe" rateShifts="@rateShifts"/>
-                    <timeVaryingReassortmentRates id="splinePop2" spec="coalre.dynamics.SkygrowthReassortmentRatesFromSkygrowthNe" logNe="@logNe" neToReassortment="@InfectedToRho" rateShifts="@rateShifts"/>
+                    <timeVaryingReassortmentRates id="splinePop2" spec="coalre.dynamics.SkygrowthReassortmentRatesFromSkygrowthNe" logNe="@logNe" neToReassortment="@InfectedToRho" rateShifts="@rateShifts" finalGrowthRate="-0.1"/>
                     <!--isNeSkyline -->
 
 
@@ -279,6 +279,11 @@
                     <distribution spec="Prior">
                         <x spec="coalre.dynamics.Difference" arg="@InfectedToRho" independentAfter="insert_independent_after"/>
                         <distr spec="beast.base.inference.distribution.Normal" mean="0" sigma="@sigma2"/>
+                    </distribution>
+
+                    <distribution spec="Prior">
+                        <x spec="mascot.util.Final" arg="@InfectedToRho"/>
+                        <distr spec="beast.base.inference.distribution.Normal" mean="-3" sigma="0.5"/>
                     </distribution>
 
 
@@ -338,6 +343,7 @@
             <operator id="AVMNOperator.Mascot" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="1.0">
                 <transformations id="AVMNSumTransform.Mascot" spec="operator.kernel.Transform$LogConstrainedSumTransform"/>
                 <transformations id="AVMNLogTransform.Mascot" spec="operator.kernel.Transform$LogTransform">
+                    <f idref="sigma2"/>
                 </transformations>
                 <transformations id="AVMNNoTransform.Mascot" spec="operator.kernel.Transform$NoTransform">
                     <f idref="InfectedToRho"/>
@@ -350,6 +356,12 @@
             <parameter idref="InfectedToRho"/>
             <operator idref="AVMNOperator.Mascot"/>
             <operator id="InfectedToRho.ScalerX.t" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@InfectedToRho" scaleFactor="0.5" weight="1.0"/>
+        </operator>
+
+        <operator id="Sigma2Scaler.s:" spec="AdaptableOperatorSampler" weight="10.0">
+            <parameter idref="sigma2"/>
+            <operator idref="AVMNOperator.Mascot"/>
+            <operator id="Sigma2.ScalerX.t" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@sigma2" scaleFactor="0.5" weight="1.0"/>
         </operator>
 
         <operator id="InfectedToRho.ScalerX.t2" spec="beast.base.inference.operator.kernel.BactrianRandomWalkOperator" parameter="@InfectedToRho" scaleFactor="0.5" weight="5.0"/>
@@ -592,42 +604,8 @@
         <operator id="ClockRateScaler.t6" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@mutationRate.s:seg6" scaleFactor="0.5" weight="1.0"/>
         <operator id="ClockRateScaler.t7" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@mutationRate.s:seg7" scaleFactor="0.5" weight="1.0"/>
         <operator id="ClockRateScaler.t8" spec="beast.base.evolution.operator.kernel.BactrianScaleOperator" parameter="@mutationRate.s:seg8" scaleFactor="0.5" weight="1.0"/> -->
-
-
-        <operator id="AR1" spec="AddRemoveReassortment" network="@network" lambda="1" weight="20.0" alpha="30" divertOneSegment="true">
-            <segmentTree idref="seg1tree"/>
-            <segmentTree idref="seg2tree"/>
-            <segmentTree idref="seg3tree"/>
-            <segmentTree idref="seg4tree"/>
-            <segmentTree idref="seg5tree"/>
-            <segmentTree idref="seg6tree"/>
-            <segmentTree idref="seg7tree"/>
-            <segmentTree idref="seg8tree"/>
-        </operator>
-
-        <operator id="AR2" spec="AddRemoveReassortmentCoalescent" randomlySampleAttachmentEdge="true" coalescentWithReassortment="@networkPrior" network="@network" lambda="0.1" weight="100.0" divertOneSegment="false">
-            <segmentTree idref="seg1tree"/>
-            <segmentTree idref="seg2tree"/>
-            <segmentTree idref="seg3tree"/>
-            <segmentTree idref="seg4tree"/>
-            <segmentTree idref="seg5tree"/>
-            <segmentTree idref="seg6tree"/>
-            <segmentTree idref="seg7tree"/>
-            <segmentTree idref="seg8tree"/>
-        </operator>
-
-        <operator id="AR3" spec="AddRemoveReassortmentCoalescent" randomlySampleAttachmentEdge="false" coalescentWithReassortment="@networkPrior" network="@network" lambda="5" weight="100.0" divertOneSegment="false">
-            <segmentTree idref="seg1tree"/>
-            <segmentTree idref="seg2tree"/>
-            <segmentTree idref="seg3tree"/>
-            <segmentTree idref="seg4tree"/>
-            <segmentTree idref="seg5tree"/>
-            <segmentTree idref="seg6tree"/>
-            <segmentTree idref="seg7tree"/>
-            <segmentTree idref="seg8tree"/>
-        </operator>
-
-        <operator id="AR4" spec="AddRemoveReassortmentCoalescent" randomlySampleAttachmentEdge="false" coalescentWithReassortment="@networkPrior" network="@network" lambda="0.1" weight="30.0" divertOneSegment="true">
+        
+               <operator id="AR_regular" spec="AddRemoveReassortment" network="@network" weight="10.0" alpha="30" divertOneSegment="true">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -639,7 +617,7 @@
         </operator>
 
 
-        <operator spec="DivertSegmentOperator" lambda="0.1" network="@network" weight="30.0" divertOneSegment="true">
+        <operator id="AR_shortone" spec="AddRemoveReassortment" network="@network" localMove="true" weight="10.0" edgeDistance="3" alpha="30" divertOneSegment="false">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -649,6 +627,54 @@
             <segmentTree idref="seg7tree"/>
             <segmentTree idref="seg8tree"/>
         </operator>
+
+        <operator id="AR_medium_one" spec="AddRemoveReassortment" network="@network" localMove="true" weight="10.0" edgeDistance="6" alpha="30" divertOneSegment="false">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+        <operator id="AR_medium_allseg" spec="AddRemoveReassortment" network="@network" localMove="true" weight="10.0" edgeDistance="9" alpha="30" divertOneSegment="true">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+
+        <operator id="AR2allrand" spec="AddRemoveAndResimulate" coalescentWithReassortment="@networkPrior"  network="@network" weight="150.0" divertOneSegment="false">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+
+
+        <operator spec="DivertSegmentAndResimulate" coalescentWithReassortment="@networkPrior"  network="@network" weight="100.0">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
 
 
 
@@ -666,10 +692,10 @@
             <upLogScaledParameter idref="logNe"/>
             <downLogScaledParameter idref="InfectedToRho"/>
             <!--isinfectedSkyline -->
-            <!-- isconstant-->
+            <!-- 
             <upParameter idref="popSize"/>
             <downParameter idref="reassortmentRate"/>
-            <!--isconstant -->
+             -->
 
         </operator>
 
@@ -696,7 +722,7 @@
             <segmentTree idref="seg8tree"/>
         </operator>
 
-        <operator id="Narrow" spec="NetworkExchange" isNarrow="true" network="@network" weight="5.0">
+        <operator id="Narrow" spec="NetworkExchangeAndResimulate" coalescentWithReassortment="@networkPrior" isNarrow="true" network="@network" weight="30.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -706,7 +732,7 @@
             <segmentTree idref="seg7tree"/>
             <segmentTree idref="seg8tree"/>
         </operator>
-        <operator id="Wide" spec="NetworkExchange" lambda="5" isNarrow="false" network="@network" weight="50.0">
+        <operator id="Wide" spec="NetworkExchangeAndResimulate" coalescentWithReassortment="@networkPrior" isNarrow="false" network="@network" weight="30.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -716,42 +742,6 @@
             <segmentTree idref="seg7tree"/>
             <segmentTree idref="seg8tree"/>
         </operator>
-        <!-- <operator id="SPR" spec="NetworkSPR" lambda="2" network="@network" weight="15.0">
-            <segmentTree idref="seg1tree"/>
-            <segmentTree idref="seg2tree"/>
-            <segmentTree idref="seg3tree"/>
-            <segmentTree idref="seg4tree"/>
-            <segmentTree idref="seg5tree"/>
-            <segmentTree idref="seg6tree"/>
-            <segmentTree idref="seg7tree"/>
-            <segmentTree idref="seg8tree"/>
-        </operator> -->
-        <operator id="SPRoneSeg" spec="NetworkSPR" network="@network" weight="15.0" divertOneSegment="true">
-            <segmentTree idref="seg1tree"/>
-            <segmentTree idref="seg2tree"/>
-            <segmentTree idref="seg3tree"/>
-            <segmentTree idref="seg4tree"/>
-            <segmentTree idref="seg5tree"/>
-            <segmentTree idref="seg6tree"/>
-            <segmentTree idref="seg7tree"/>
-            <segmentTree idref="seg8tree"/>
-        </operator>
-
-
-
-        <!-- <operator id="NetworkScaleLast" spec="NetworkScaleOperator" network="@network" weight="2" scaleFactor="0.8" doubleDiscount="false" lastInterval="10">
-            <segmentTree idref="seg1tree"/>
-            <segmentTree idref="seg2tree"/>
-            <segmentTree idref="seg3tree"/>
-            <segmentTree idref="seg4tree"/>
-            <segmentTree idref="seg5tree"/>
-            <segmentTree idref="seg6tree"/>
-            <segmentTree idref="seg7tree"/>
-            <segmentTree idref="seg8tree"/>
-            <upLogScaledParameter idref="logNe"/>
-            <downLogScaledParameter idref="InfectedToRho"/>
-        </operator> -->
-
 
         <operator id="NetworkScaleRootOnly" spec="NetworkScaleOperator" network="@network" scaleRootOnly="true" weight="1" scaleFactor="0.2">
             <segmentTree idref="seg1tree"/>
@@ -776,7 +766,7 @@
         </operator>
 
 
-        <!-- <operator id="slide" spec="SubNetworkSlide"  network="@network" weight="10.0">
+        <!-- <operator id="slide" spec="SubNetworkSlideAndResimulate" coalescentWithReassortment="@networkPrior" useEdgeLength="false"  network="@network" weight="15.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -787,7 +777,7 @@
             <segmentTree idref="seg8tree"/>
         </operator> -->
 
-        <operator id="slide3" spec="SubNetworkLeap" network="@network" weight="50.0">
+        <operator id="Leap" spec="SubNetworkLeap" useEdgeLength="true" network="@network" weight="50.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -798,7 +788,7 @@
             <segmentTree idref="seg8tree"/>
         </operator>
 
-        <operator id="weighted" spec="SubNetworkLeap" randomlySampleAttachmentEdge="false"  network="@network" weight="50.0">
+        <operator id="weighted" spec="SubNetworkLeap" randomlySampleAttachmentEdge="false"  useEdgeLength="true" network="@network" weight="50.0">
             <segmentTree idref="seg1tree"/>
             <segmentTree idref="seg2tree"/>
             <segmentTree idref="seg3tree"/>
@@ -808,6 +798,20 @@
             <segmentTree idref="seg7tree"/>
             <segmentTree idref="seg8tree"/>
         </operator>
+
+        <operator id="gibbs" spec="GibbsOperatorAboveSegmentRoots" coalescentWithReassortment="@networkPrior"   network="@network" weight="1">
+            <segmentTree idref="seg1tree"/>
+            <segmentTree idref="seg2tree"/>
+            <segmentTree idref="seg3tree"/>
+            <segmentTree idref="seg4tree"/>
+            <segmentTree idref="seg5tree"/>
+            <segmentTree idref="seg6tree"/>
+            <segmentTree idref="seg7tree"/>
+            <segmentTree idref="seg8tree"/>
+        </operator>
+
+
+
 
 
 

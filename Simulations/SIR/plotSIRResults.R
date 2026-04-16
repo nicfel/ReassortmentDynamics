@@ -3,6 +3,7 @@ library(coda)
 library(ggplot2)
 # add library for color palette
 library(RColorBrewer)
+library("colorblindr")
 
 
 # Clear workspace
@@ -14,12 +15,34 @@ set.seed(6465546)
 # clear workspace
 rm(list = ls())
 
-# Set the directory to the directory of the file
-this.dir <- dirname(parent.frame(2)$ofile)
+# Set the directory to the directory of the file (works with Rscript)
+args <- commandArgs(trailingOnly = FALSE)
+file_arg <- "--file="
+match <- grep(file_arg, args)
+if (length(match) > 0) {
+  this.dir <- dirname(normalizePath(sub(file_arg, "", args[match])))
+} else {
+  this.dir <- getwd()
+}
 setwd(this.dir)
 
+# Cache file for quick plotting iteration (delete to regenerate from source data)
+CACHE_FILE = "SIR_plot_data.RDS"
+
+if (file.exists(CACHE_FILE)) {
+  cat("Loading cached data from", CACHE_FILE, "\n")
+  cached = readRDS(CACHE_FILE)
+  est.data = cached$est.data
+  const.est.data = cached$const.est.data
+  reassortment.data = cached$reassortment.data
+  true.data = cached$true.data
+  use.runs.1 = cached$use.runs.1
+  use.runs.2 = cached$use.runs.2
+} else {
+# ---- DATA LOADING (skip when cache exists) ----
 # date frame to save all results
 est.data = data.frame()
+const.est.data = data.frame()
 # data frame to save the reassortment events
 reassortment.data = data.frame()
 
@@ -29,12 +52,12 @@ reassortment.data = data.frame()
 simulated = read.table("SIR_simulations.txt", header=TRUE, sep="\t")
 
 # get all .log files in /out
-logfiles <- list.files("./out", pattern="*.log", full.names=TRUE)
+logfiles <- list.files("../out", pattern="*.log", full.names=TRUE)
+# remove any files that contains structured
+logfiles = logfiles[!grepl("structured", logfiles)]
 
 # loop over all files
 for (i in seq(1, length(logfiles))){
-# for (i in seq(1, 30)){
-  # try to open logfiles[[i]] as t = read.table(logfiles[i], header=TRUE, sep="\t"), otherwise skip it
   t = try(read.table(logfiles[i], header=TRUE, sep="\t"))
   # if t is not a data.frame, skip the file
   if (!is.data.frame(t) || length(t$Sample) <10){
@@ -63,72 +86,61 @@ for (i in seq(1, length(logfiles))){
   
   # split the line on " and get the second group
   rateShifts = as.numeric(strsplit(strsplit(rateShifts, "\"")[[1]][6], split=" ")[[1]])
-  time_points2 = seq(0,max(rateShifts), length.out=500)
-
+  # time_points2 = seq(0,max(rateShifts), length.out=500)
+  print(rateShifts)
   # split on . and get the second group as the method used
-  method = strsplit(logfiles[i], "\\.")[[1]][3]
+  method = strsplit(logfiles[i], "\\.")[[1]][4]
   print(method)
   # split on . and _ simultanously and get the third group as the runnumber
-  run = as.numeric(strsplit(logfiles[i], "\\.|_")[[1]][4])
+  run = as.numeric(strsplit(logfiles[i], "\\.|_")[[1]][5])
   # if the method is not constant
-  if (grepl("ne", method)){
-    # initialize the prevalence vector
-    prevalence = c()
-    prevalencel = c()
-    prevalenceu = c()
-    time = c()
-    # loop over all the labels in t that start with reassortment%d, where %d is a number in time_points2
-    for (j in seq(0, length(time_points2)-1, 10)){
-      # get the prevalence at the time point, if the label exists
-      if (paste0("reassortment", j) %in% colnames(t)){
-        prevalence = c(prevalence, median(t[,paste0("reassortment", j)]))
-        # get the 2.5 and 97.5 quantile
-        prevalencel = c(prevalencel, quantile(t[,paste0("reassortment", j)], 0.025))
-        prevalenceu = c(prevalenceu, quantile(t[,paste0("reassortment", j)], 0.975))
-        # time
-        time = c(time, time_points2[j+1])
-      }    
-    }
-    # get the value in simulated in the run row and "transmission" column
+  if (grepl("skygrowthNe", method)){
     transmision0 = simulated[run, "transmission"]
-    # devide prevalence by transmission0
-    prevalence = prevalence/transmision0
-    prevalencel = prevalencel/transmision0
-    prevalenceu = prevalenceu/transmision0
-    # add the data to a data frame
-    est.data = rbind(est.data, data.frame(method=method, run=run, time=time, 
-            prevalence=prevalence, prevalencel=prevalencel, prevalenceu=prevalenceu)) 
-  }  else if (grepl("infected", method)){
-    # initialize the prevalence vector
-    prevalence = c()
-    prevalencel = c()
-    prevalenceu = c()
-    time = c()
-    # loop over all the labels in t that start with reassortment%d, where %d is a number in time_points2
-    for (j in seq(1, length(rateShifts))){
-      # get the prevalence at the time point, if the label exists
-      if (paste0("InfectedToRho.", j) %in% colnames(t)){
-        prevalence = c(prevalence, median(t[,paste0("InfectedToRho.", j)]))
-        prevalence = c(prevalence, median(t[,paste0("InfectedToRho.", j)]))
-        # get the 2.5 and 97.5 quantile
-        prevalencel = c(prevalencel, quantile(t[,paste0("InfectedToRho.", j)], 0.025))
-        prevalenceu = c(prevalenceu, quantile(t[,paste0("InfectedToRho.", j)], 0.975))
-        prevalencel = c(prevalencel, quantile(t[,paste0("InfectedToRho.", j)], 0.025))
-        prevalenceu = c(prevalenceu, quantile(t[,paste0("InfectedToRho.", j)], 0.975))
+    
+    for (q in seq(0,0.95, 0.05)){
+      # loop over all the labels in t that start with reassortment%d, where %d is a number in time_points2
+      prevalencel = c()
+      prevalenceu = c()
+      time = c()
+      
+      # loop over all the labels in t that start with reassortment%d, where %d is a number in time_points2
+      for (j in seq(1, length(rateShifts), 1)){
+        vals = t[,paste0("logNe.", j)] + t[,paste0("InfectedToRho.", j)]
+        
+        prevalencel = c(prevalencel, quantile(vals, (1-q)/2))
+        prevalenceu = c(prevalenceu, quantile(vals, (1+q)/2))
         # time
-        time = c(time, rateShifts[j]+0.00001)
-        time = c(time, rateShifts[j+1])
-      }    
+        time = c(time, rateShifts[j])
+      }
+      # add the data to a data frame
+      est.data = rbind(est.data, data.frame(method=method, run=run, time=time, 
+                                            prevalencel= exp(prevalencel)/transmision0, prevalenceu=exp(prevalenceu)/transmision0,
+                                            quantile = q))     # get the value in simulated in the run row and "transmission" column
     }
-    # get the value in simulated in the run row and "transmission" column
+  }  else if (grepl("skygrowth", method)){
     transmision0 = simulated[run, "transmission"]
-    # devide prevalence by transmission0
-    prevalence = exp(prevalence)/transmision0
-    prevalencel = exp(prevalencel)/transmision0
-    prevalenceu = exp(prevalenceu)/transmision0
-    # add the data to a data frame
-    est.data = rbind(est.data, data.frame(method=method, run=run, time=time, 
-                                          prevalence=prevalence, prevalencel=prevalencel, prevalenceu=prevalenceu)) 
+    
+    for (q in seq(0,0.95, 0.05)){
+      # loop over all the labels in t that start with reassortment%d, where %d is a number in time_points2
+      prevalencel = c()
+      prevalenceu = c()
+      time = c()
+      
+      # loop over all the labels in t that start with reassortment%d, where %d is a number in time_points2
+      for (j in seq(1, length(rateShifts), 1)){
+        vals = t[,paste0("InfectedToRho.", j)]
+        
+        prevalencel = c(prevalencel, quantile(vals, (1-q)/2))
+        prevalenceu = c(prevalenceu, quantile(vals, (1+q)/2))
+        # time
+        time = c(time, rateShifts[j])
+      }
+      # add the data to a data frame
+      est.data = rbind(est.data, data.frame(method=method, run=run, time=time, 
+                                            prevalencel= exp(prevalencel)/transmision0, prevalenceu=exp(prevalenceu)/transmision0,
+                                            quantile = q))     # get the value in simulated in the run row and "transmission" column
+    }
+    
   }else{
     # if the method is constant
     # get the value in simulated in the run row and "transmission" column
@@ -138,22 +150,32 @@ for (i in seq(1, length(logfiles))){
     # get the 2.5 and 97.5 quantile
     prevalencel = quantile(t[, "reassortmentRate"], 0.025)
     prevalenceu = quantile(t[, "reassortmentRate"], 0.975)
+    # take the 25 and 75 quantile
+    prevalencel5 = quantile(t[, "reassortmentRate"], 0.25)
+    prevalenceu5 = quantile(t[, "reassortmentRate"], 0.75)
+    prevalencel8 = quantile(t[, "reassortmentRate"], 0.9)
+    prevalenceu8 = quantile(t[, "reassortmentRate"], 0.1)
+    
     # dubblicate the above vectors to have the same value two times
     prevalence = c(prevalence, prevalence)
     prevalencel = c(prevalencel, prevalencel)
     prevalenceu = c(prevalenceu, prevalenceu)
+    prevalencel5 = c(prevalencel5, prevalencel5)
+    prevalenceu5 = c(prevalenceu5, prevalenceu5)
     # time
     time = c(0, 16)
     # add to the data.frame
-    est.data = rbind(est.data, data.frame(method=method, run=run, time=time, 
+    const.est.data = rbind(const.est.data, data.frame(method=method, run=run, time=time, 
             prevalence=prevalence/transmision0, prevalencel=prevalencel/transmision0, 
-            prevalenceu=prevalenceu/transmision0))
+            prevalenceu=prevalenceu/transmision0,
+            prevalencel5=prevalencel5/transmision0, prevalenceu5=prevalenceu5/transmision0,
+            prevalencel8=prevalencel8/transmision0, prevalenceu8=prevalenceu8/transmision0))
   }
   reassortment.data = rbind(reassortment.data, data.frame(method=method, run=run, 
           events=median(t[, "network.reassortmentNodeCount"]), 
           eventsl=quantile(t[, "network.reassortmentNodeCount"], 0.025), 
           eventsu=quantile(t[, "network.reassortmentNodeCount"], 0.975)))
-
+  
 }
 est.data$mrsi = NA
 reassortment.data$true = NA
@@ -265,15 +287,17 @@ for (i in seq(1, length(logfiles))){
 
   # get the population size
   popSize = simulated[run, "population_size"]
-
+  
+  # take ~100 points evenly distributed across time (not by index)
+  target_times = seq(min(time_I), max(time_I), length.out=100)
+  index = sort(unique(sapply(target_times, function(t) which.min(abs(time_I - t)))))
+  
   # add the data to the data frame
-  true.data = rbind(true.data, data.frame(run=run, time=time_I, prevalence=I, popSize=popSize, experienced_prev=tot_prevalence/normalization_factor))
+  true.data = rbind(true.data, data.frame(run=run, time=time_I[index], prevalence=I[index], popSize=popSize, experienced_prev=tot_prevalence/normalization_factor))
 }
 
 # ggplot(lineages_frame, aes(x=start, xend=end, y=lineages, yend=lineages))+geom_segment()
 dynamic_est_data = est.data[est.data$method!="constant", ]
-# dynamic_est_data = dynamic_est_data[dynamic_est_data$method!="infected", ]
-# dynamic_est_data = est.data
 # get all values of run in true.data$run
 uni.run = unique(dynamic_est_data$run)
 # for each value in uni.run, check if two methods are present, otherwise remove the value from uni.run
@@ -284,39 +308,53 @@ for (i in uni.run){
   }
 }
 
-set.seed(15234)
-# pick 12 random runs
-use.runs.1 = sample(use.runs[use.runs<=50], 9)
-use.runs.2 = sample(use.runs[use.runs>50], 9)
+# set.seed(15234)
+# # pick 12 random runs
+use.runs.1 = sample(use.runs[use.runs<=10], 5)
+use.runs.2 = sample(use.runs[use.runs>10], 5)
 
+  # Save for quick plotting iteration
+  saveRDS(list(est.data=est.data, const.est.data=const.est.data, reassortment.data=reassortment.data,
+               true.data=true.data, use.runs.1=use.runs.1, use.runs.2=use.runs.2), CACHE_FILE)
+  cat("Saved data to", CACHE_FILE, "\n")
+}
+
+# ---- PLOTTING ----
+dynamic_est_data = est.data[est.data$method!="constant", ]
 
 # plot the results
+dd1 = dynamic_est_data[dynamic_est_data$run %in% use.runs.1, ]
+xrange1 = range(dd1$mrsi - dd1$time, na.rm=TRUE)
+xpad1 = max(diff(xrange1) * 0.02, 0.1)
 p = ggplot(true.data[true.data$run %in% use.runs.1,], aes(x=time, y=prevalence/popSize))+
       geom_line() +
-      geom_ribbon(data=dynamic_est_data[dynamic_est_data$run %in% use.runs.1,], aes(x=mrsi-time, ymin=prevalencel, ymax=prevalenceu, fill=method), alpha=0.25) +
-      geom_line(data=dynamic_est_data[dynamic_est_data$run %in% use.runs.1,], aes(x=mrsi-time, y=prevalence, color=method)) +
-      facet_wrap(~run, ncol=3, scales='free_x') +
+      geom_ribbon(data=dd1, aes(x=mrsi-time, ymin=pmin(prevalencel, 1), ymax=pmin(prevalenceu, 1), fill=method, group=quantile), alpha=0.1, inherit.aes=FALSE) +
+      facet_wrap(method~run, ncol=5, scales='free') +
       theme_minimal() +
-      coord_cartesian(ylim=c(0,0.5)) +
+      theme(strip.text=element_blank()) +
+      coord_cartesian(xlim=c(xrange1[1]-xpad1, xrange1[2]+xpad1)) +
       scale_color_manual(values=c("#0072B2", "#D55E00"))+
       scale_fill_manual(values=c("#0072B2", "#D55E00")) +
-      # theme(strip.text=element_blank()) +
+      guides(fill=guide_legend(override.aes=list(alpha=1))) +
       xlab("Time") +
       ylab("Prevalence")
 plot(p)
 # save the results
 ggsave("./../../Figures/Sir.pdf", p, width = 9, height = 6)
 
+dd2 = dynamic_est_data[dynamic_est_data$run %in% use.runs.2, ]
+xrange2 = range(dd2$mrsi - dd2$time, na.rm=TRUE)
+xpad2 = max(diff(xrange2) * 0.02, 0.1)
 p = ggplot(true.data[true.data$run %in% use.runs.2 ,], aes(x=time, y=prevalence/popSize))+
   geom_line() +
-  geom_ribbon(data=dynamic_est_data[dynamic_est_data$run %in% use.runs.2,], aes(x=mrsi-time, ymin=prevalencel, ymax=prevalenceu, fill=method), alpha=0.25) +
-  geom_line(data=dynamic_est_data[dynamic_est_data$run %in% use.runs.2,], aes(x=mrsi-time, y=prevalence, color=method)) +
-  facet_wrap(~run, ncol=3) +
+  geom_ribbon(data=dd2, aes(x=mrsi-time, ymin=pmin(prevalencel, 1), ymax=pmin(prevalenceu, 1), fill=method, group=quantile), alpha=0.1, inherit.aes=FALSE) +
+  facet_wrap(method~run, ncol=5, scales='free') +
   theme_minimal() +
-  coord_cartesian(ylim=c(0,0.5)) +
+  theme(strip.text=element_blank()) +
+  coord_cartesian(xlim=c(xrange2[1]-xpad2, xrange2[2]+xpad2)) +
   scale_color_manual(values=c("#0072B2", "#D55E00"))+
   scale_fill_manual(values=c("#0072B2", "#D55E00")) +
-  # theme(strip.text=element_blank()) +
+  guides(fill=guide_legend(override.aes=list(alpha=1))) +
   xlab("Time") +
   ylab("Prevalence")
 plot(p)
@@ -337,23 +375,23 @@ for (i in unique(true.data$run)){
   # and the run i, but only pick the first row for which this is true
   const_data = rbind(const_data, data.frame(run=i, experienced_prev=true.data[true.data$run==i,]$experienced_prev[1],
           popSize=true.data[true.data$run==i,]$popSize[1], 
-          prevalence=est.data[est.data$run==i & est.data$method=="constant",]$prevalence[1],
-          prevalencel=est.data[est.data$run==i & est.data$method=="constant",]$prevalencel[1],
-          prevalenceu=est.data[est.data$run==i & est.data$method=="constant",]$prevalenceu[1],
+          prevalence=const.est.data[const.est.data$run==i,]$prevalence[1],
+          prevalencel=const.est.data[const.est.data$run==i,]$prevalencel[1],
+          prevalenceu=const.est.data[const.est.data$run==i,]$prevalenceu[1],
           ratio = ratio$events/ratio$true))  
 }
 
 const_data$super = "with"
-const_data[const_data$run<=50, "super"] = "without"
+const_data[const_data$run<=10, "super"] = "without"
 # make an x equal y plot
 p = ggplot(const_data[order(const_data$experienced_prev/const_data$popSize),], 
            aes(x=experienced_prev/popSize*ratio, y=prevalence, color=super))+
       geom_abline(intercept=0, slope=1, linetype="dashed") +
       geom_point(alpha=0.9) +
       geom_errorbar(aes(ymin=prevalencel, ymax=prevalenceu), alpha=0.5) +
-      xlab("True, time weighted prevalence")+
-      ylab("Estimated prevalence")+
-      scale_color_OkabeIto(name="superspreading")+
+  xlab("True, time weighted prevalence")+
+  ylab("Estimated prevalence from reassortment rate")+
+  scale_color_OkabeIto(name="superspreading")+
       theme_minimal()
 plot(p)
 ggsave("./../../Figures/Sir_constant.pdf", p, width = 6, height = 3)
@@ -367,6 +405,8 @@ p = ggplot(reassortment.data[order(reassortment.data$true),], aes(x=true, y=even
       geom_point(alpha=0.9) +
       geom_errorbar(aes(ymin=eventsl, ymax=eventsu), alpha=0.5) +
       theme_minimal() +
+      xlab("True number of reassortment events")+
+      ylab("Estimated number of reassortment events")+
       facet_wrap(method~., ncol=1)
 plot(p)
 ggsave("./../../Figures/Sir_constant_events.pdf", p, width = 6, height = 6)

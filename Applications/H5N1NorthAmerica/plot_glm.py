@@ -35,11 +35,14 @@ def define_constants():
     new_order = [0, 1, 2, 4, 7, 5, 6, 3]
     # Daly City-inspired color scheme: darker, muted tones
     colour_cycle = ['#5B7A9F', '#8B7AA6', '#6B9568', '#C89878', '#9B8874', '#6B8583']
+    # HPAI and LPAI colors (colorblind-safe, Daly City-inspired muted tones)
+    hpai_color = '#ad5252'  # muted red
+    lpai_color = '#407499'  # muted blue
     path = '/Users/nmueller/Documents/github/CoInfection-Material/Applications/H5N1NorthAmerica/'
     linewidth = 0.5
     approach = 'glm'
 
-    return colours, segments, new_order, colour_cycle, path, linewidth, approach
+    return colours, segments, new_order, colour_cycle, hpai_color, lpai_color, path, linewidth, approach
 
 
 def run_beast_commands(path, force=False):
@@ -374,7 +377,7 @@ def finalize_tree_plot(ax, ll, fromval, toval):
     # Add y-axis with time labels
     ax.spines['left'].set_visible(True)
     ax.spines['left'].set_linewidth(0.5)
-    ax.set_ylabel('Time (years)')
+    # y-axis label removed for panel A
 
     # Set y-axis ticks
     ax.yaxis.set_ticks_position('left')
@@ -468,7 +471,7 @@ def calculate_rate_quantiles(log_data, mrsi, path):
             medians_ne, lower_95_ne, upper_95_ne, lower_50_ne, upper_50_ne, 
             time_points, all_quantiles, all_quantiles_ne, quantiles_to_plot, colors_quantiles)
 
-def plot_reassortment_rates(ax, valid_times, medians, lower_95, upper_95, lower_50, upper_50, fromval, mrsi, path, all_quantiles=None, quantiles_to_plot=None, colors_quantiles=None, timewidth=0.5):
+def plot_reassortment_rates(ax, valid_times, medians, lower_95, upper_95, lower_50, upper_50, fromval, mrsi, path, hpai_color, lpai_color, all_quantiles=None, quantiles_to_plot=None, colors_quantiles=None, timewidth=0.5):
     """Plot reassortment rates with confidence intervals"""
     offset_y = 500.
     stretch_y = -25
@@ -541,7 +544,7 @@ def plot_reassortment_rates(ax, valid_times, medians, lower_95, upper_95, lower_
             
             # Create shaded ribbon for this confidence interval
             ax.fill_between(valid_times, lower_values, upper_values,
-                           alpha=alpha, color='#C85A3C',  # Strong terracotta
+                           alpha=alpha, color=lpai_color,
                            label=label, zorder=2, linewidth=0)
 
         # Plot the median as a thick shaded ribbon
@@ -557,20 +560,20 @@ def plot_reassortment_rates(ax, valid_times, medians, lower_95, upper_95, lower_
         median_lower = median_values - median_thickness
 
         ax.fill_between(valid_times, median_lower, median_upper,
-                       alpha=median_alpha, color='#C85A3C',  # Strong terracotta
+                       alpha=median_alpha, color=lpai_color,
                        label='Median', zorder=3, linewidth=0)
     else:
         # Fallback to original plotting if new parameters not provided
-        ax.fill_between(valid_times, lower_95, upper_95, alpha=0.2, color='#4E79A7', label='95% CI', zorder=2)
-        ax.fill_between(valid_times, lower_50, upper_50, alpha=0.4, color='#4E79A7', label='50% CI', zorder=2)
-        ax.plot(valid_times, medians, color='#4E79A7', linewidth=2, label='Median', zorder=2)
+        ax.fill_between(valid_times, lower_95, upper_95, alpha=0.2, color=lpai_color, label='95% CI', zorder=2)
+        ax.fill_between(valid_times, lower_50, upper_50, alpha=0.4, color=lpai_color, label='50% CI', zorder=2)
+        ax.plot(valid_times, medians, color=lpai_color, linewidth=2, label='Median', zorder=2)
 
     # Plot only LPAI and HPAI predictors with optimal scaling for reassortment rates
     reassortment_scale = 2.97
     reassortment_offset = -2.50
     
-    ax.plot(valid_times, lpai_values * reassortment_scale + reassortment_offset, color='#2ca02c', linewidth=1.5, label='LPAI', linestyle='--')
-    ax.plot(valid_times, hpai_values * reassortment_scale + reassortment_offset, color='#d62728', linewidth=1.5, label='HPAI', linestyle='--')
+    lpai_line = ax.plot(valid_times, lpai_values * reassortment_scale + reassortment_offset, color=lpai_color, linewidth=1.5, label='LPAI', linestyle='--')
+    hpai_line = ax.plot(valid_times, hpai_values * reassortment_scale + reassortment_offset, color=hpai_color, linewidth=1.5, label='HPAI', linestyle='--')
 
     # Add timeline shading to match the tree
     for i in np.arange(fromval, mrsi, 2 * timewidth):
@@ -599,10 +602,12 @@ def plot_reassortment_rates(ax, valid_times, medians, lower_95, upper_95, lower_
     ax.set_ylabel('reassortment rate')
     ax.set_ylim(np.log(0.0125), np.log(6.4))
 
-    return offset_y, stretch_y
+    # Return handles for case count lines (LPAI and HPAI)
+    case_count_handles = [lpai_line[0], hpai_line[0]]
+    return offset_y, stretch_y, case_count_handles
 
 
-def plot_ne(ax_ne, valid_times, medians_ne, lower_95_ne, upper_95_ne, lower_50_ne, upper_50_ne, fromval, mrsi, path, all_quantiles_ne=None, quantiles_to_plot=None, colors_quantiles=None, timewidth=0.5):
+def plot_ne(ax_ne, valid_times, medians_ne, lower_95_ne, upper_95_ne, lower_50_ne, upper_50_ne, fromval, mrsi, path, hpai_color, lpai_color, all_quantiles_ne=None, quantiles_to_plot=None, colors_quantiles=None, timewidth=0.5):
     """Plot effective population size (Ne) with confidence intervals and the other predictors"""
 
     # get the other predictors
@@ -668,7 +673,7 @@ def plot_ne(ax_ne, valid_times, medians_ne, lower_95_ne, upper_95_ne, lower_50_n
             
             # Create shaded ribbon for this confidence interval
             ax_ne.fill_between(valid_times, lower_values, upper_values,
-                              alpha=alpha, color='#4A8B6F',  # Strong sage green
+                              alpha=alpha, color=hpai_color,
                               label=label, zorder=2, linewidth=0)
 
         # Plot the median as a thick shaded ribbon
@@ -684,13 +689,13 @@ def plot_ne(ax_ne, valid_times, medians_ne, lower_95_ne, upper_95_ne, lower_50_n
         median_lower = median_values - median_thickness
 
         ax_ne.fill_between(valid_times, median_lower, median_upper,
-                          alpha=median_alpha, color='#4A8B6F',  # Strong sage green
+                          alpha=median_alpha, color=hpai_color,
                           label='Median', zorder=3, linewidth=0)
     else:
         # Fallback to original plotting if new parameters not provided
-        ax_ne.fill_between(valid_times, lower_95_ne, upper_95_ne, alpha=0.2, color='#4E79A7', label='95% CI')
-        ax_ne.fill_between(valid_times, lower_50_ne, upper_50_ne, alpha=0.4, color='#4E79A7', label='50% CI')
-        ax_ne.plot(valid_times, medians_ne, color='#4E79A7', linewidth=2, label='Median')
+        ax_ne.fill_between(valid_times, lower_95_ne, upper_95_ne, alpha=0.2, color=hpai_color, label='95% CI')
+        ax_ne.fill_between(valid_times, lower_50_ne, upper_50_ne, alpha=0.4, color=hpai_color, label='50% CI')
+        ax_ne.plot(valid_times, medians_ne, color=hpai_color, linewidth=2, label='Median')
     
     # Calculate the median Ne values for proper scaling
     if all_quantiles_ne is not None:
@@ -715,8 +720,8 @@ def plot_ne(ax_ne, valid_times, medians_ne, lower_95_ne, upper_95_ne, lower_50_n
     ne_scale = ne_range * 0.3
     ne_offset = np.mean(median_ne)
 
-    ax_ne.plot(valid_times, lpai_values * ne_scale + ne_offset, color='#2ca02c', linewidth=1.5, label='LPAI', linestyle='--')
-    ax_ne.plot(valid_times, hpai_values * ne_scale + ne_offset, color='#d62728', linewidth=1.5, label='HPAI', linestyle='--')
+    lpai_line_ne = ax_ne.plot(valid_times, lpai_values * ne_scale + ne_offset, color=lpai_color, linewidth=1.5, label='LPAI', linestyle='--')
+    hpai_line_ne = ax_ne.plot(valid_times, hpai_values * ne_scale + ne_offset, color=hpai_color, linewidth=1.5, label='HPAI', linestyle='--')
 
     # Add timeline shading to match the tree
     for i in np.arange(fromval, mrsi, 2 * timewidth):
@@ -737,10 +742,17 @@ def plot_ne(ax_ne, valid_times, medians_ne, lower_95_ne, upper_95_ne, lower_50_n
     # Convert log Ne values back to real scale for display
     ax_ne.set_ylabel('Ne')
 
-    # Set y-ticks with real values
-    current_yticks = ax_ne.get_yticks()
-    real_yticks = np.exp(current_yticks)
-    ax_ne.set_yticklabels([f'{int(val):,}' if val >= 1 else f'{val:.2f}' for val in real_yticks])
+    # Set y-ticks with factor 2 increments (1, 4, 16, 64, etc. - powers of 2 with step size 2)
+    tick_positions = [np.log(1), np.log(4), np.log(16), np.log(64), np.log(256), np.log(1024)]
+    
+    tick_labels = ["1", "4", "16", "64", "256", "1024"]
+    
+    ax_ne.set_yticks(tick_positions)
+    ax_ne.set_yticklabels(tick_labels)
+    
+    # Return handles for case count lines (LPAI and HPAI)
+    case_count_handles_ne = [lpai_line_ne[0], hpai_line_ne[0]]
+    return case_count_handles_ne
   
 def add_rate_axis(ax, time_points, offset_y, stretch_y, fromval, toval):
     """Add axis for reassortment rates with proper scaling"""
@@ -766,7 +778,7 @@ def add_rate_axis(ax, time_points, offset_y, stretch_y, fromval, toval):
     ax.text(axis_time + (toval - fromval) * 0.05, label_y, 'Reassortment\nRate', 
             ha='center', va='center', fontsize=12, rotation=90, zorder=10)
 
-def create_predictor_inset(ax, log_data):
+def create_predictor_inset(ax, log_data, hpai_color, lpai_color):
     """Create bar plot for predictor support - now horizontal (flipped)"""
     ax_bar_inset = ax
 
@@ -786,7 +798,7 @@ def create_predictor_inset(ax, log_data):
 
     # Colors: LPAI, HPAI, Total AIV, Ne, Neither
     # Keep LPAI and HPAI colors to match other subplots, make others black/white
-    colors = ['#2ca02c', '#d62728', '#000000', '#000000', '#000000']
+    colors = [lpai_color, hpai_color, '#000000', '#000000', '#000000']
 
     # Changed to bar() instead of barh() to make it vertical (flipped)
     bars = ax_bar_inset.bar(labels, [c/sum(counts) for c in counts], color=colors, alpha=0.8,
@@ -886,7 +898,7 @@ def create_clade_probability_plot(ax_clade_probs, ax_clade_heights, mrsi, path, 
         ax_clade_heights.spines['right'].set_visible(False)
         ax_clade_heights.grid(True, alpha=0.3, linestyle='-', linewidth=0.3, axis='x')
 
-def create_reassortment_probability_plot(ax, path):
+def create_reassortment_probability_plot(ax, path, hpai_color, lpai_color):
     """Create reassortment probability plot from normalized co-infection data"""
     log_file_path = os.path.join(path, 'SIR_SIS/co_inf_normalized.txt')
     log_data = pd.read_csv(log_file_path, sep='\t')
@@ -901,8 +913,8 @@ def create_reassortment_probability_plot(ax, path):
     
     # Define colors for the two methods
     method_colors = {
-        'transmission rate limited': '#d62728',  # Red
-        'susceptible depletion': '#2ca02c'       # Green
+        'transmission rate limited': hpai_color,  # Red
+        'susceptible depletion': lpai_color       # Green
     }
     
     # Plot line for each method
@@ -956,7 +968,7 @@ def create_cluster_size_comparison_plot(ax, path):
             iteration_probs.append(prob_with_greater)
 
         # Plot histogram of probabilities across posterior
-        n, bins, patches = ax.hist(iteration_probs, bins=30, alpha=0.7, color='#1f77b4',
+        n, bins, patches = ax.hist(iteration_probs, bins=30, alpha=0.7, color='#808080',
                 density=True, edgecolor='black', linewidth=0.5)
 
         ax.set_xlabel('Probability (With > Without)')
@@ -983,8 +995,9 @@ def create_cluster_size_comparison_plot(ax, path):
 def save_figure(fig, approach):
     """Save the figure with appropriate filename"""
     # save the figure into the /Users/nmueller/Documents/github/CoInfection-Material/Figures directory
-    figname = 'H5N1_' + approach + '_combined.pdf'
-    figname = os.path.join('/Users/nmueller/Documents/github/CoInfection-Material/Figure1.pdf')
+    output_dir = '/Users/nmueller/Documents/github/CoInfection-Material/Figures/'
+    os.makedirs(output_dir, exist_ok=True)
+    figname = os.path.join(output_dir, 'Figure3.pdf')
     print('Saving figure to:')
     print(figname)
     fig.savefig(figname, bbox_inches='tight', pad_inches=0.2)
@@ -994,20 +1007,19 @@ def main(force=False):
     """Main function to run the complete analysis"""
     # Setup
     setup_matplotlib()
-    colours, segments, new_order, colour_cycle, path, linewidth, approach = define_constants()
+    colours, segments, new_order, colour_cycle, hpai_color, lpai_color, path, linewidth, approach = define_constants()
     
     # Process GLM data (replaces convert_GLM_data.R)
     process_glm_data(path, force=force)
     
     # Create figure with better spacing
-    fig = plt.figure(figsize=(18, 12), facecolor='w')
+    fig = plt.figure(figsize=(18, 12), facecolor='w', constrained_layout=True)
 
     # Use 20 columns for finer control and equal widths
-    # Set different wspace for different column pairs to add more padding between E and F
+    # constrained_layout=True handles spacing automatically
     gs = fig.add_gridspec(3, 20,
                           width_ratios=[1]*20,
-                          height_ratios=[1, 1, 1],
-                          hspace=0.35)  # Vertical spacing between rows
+                          height_ratios=[1, 1, 1])
 
     mrsi = 2025.12877
     start_time = 2021.5
@@ -1047,11 +1059,26 @@ def main(force=False):
     (valid_times, medians, lower_95, upper_95, lower_50, upper_50,
      medians_ne, lower_95_ne, upper_95_ne, lower_50_ne, upper_50_ne, 
      time_points, all_quantiles, all_quantiles_ne, quantiles_to_plot, colors_quantiles) = calculate_rate_quantiles(log_data, mrsi, path)
-    offset_y, stretch_y = plot_reassortment_rates(ax_rates, valid_times, medians, lower_95, upper_95, lower_50, upper_50, start_time, mrsi, path, all_quantiles, quantiles_to_plot, colors_quantiles, timewidth)
-    plot_ne(ax_ne, valid_times, medians_ne, lower_95_ne, upper_95_ne, lower_50_ne, upper_50_ne, start_time, mrsi, path, all_quantiles_ne, quantiles_to_plot, colors_quantiles, timewidth)
+    offset_y, stretch_y, case_count_handles_rates = plot_reassortment_rates(ax_rates, valid_times, medians, lower_95, upper_95, lower_50, upper_50, start_time, mrsi, path, hpai_color, lpai_color, all_quantiles, quantiles_to_plot, colors_quantiles, timewidth)
+    case_count_handles_ne = plot_ne(ax_ne, valid_times, medians_ne, lower_95_ne, upper_95_ne, lower_50_ne, upper_50_ne, start_time, mrsi, path, hpai_color, lpai_color, all_quantiles_ne, quantiles_to_plot, colors_quantiles, timewidth)
+    
+    # Create shared legend for case counts (LPAI and HPAI) - use handles from either subplot
+    # Both subplots have the same case count lines, so we can use handles from either
+    shared_legend_labels = ['LPAI', 'HPAI']
+    # Position legend centered between the two subplots, below them
+    # Get the bounding boxes of both axes in figure coordinates
+    bbox_rates = ax_rates.get_position()
+    bbox_ne = ax_ne.get_position()
+    # Calculate center x position between the two subplots
+    center_x = (bbox_rates.x1 + bbox_ne.x0) / 2
+    # Position below the subplots (slightly below)
+    center_y = bbox_rates.y0 - 0.02
+    fig.legend(case_count_handles_rates, shared_legend_labels, 
+               loc='upper center', bbox_to_anchor=(center_x, center_y), 
+               ncol=2, frameon=True, fontsize=10, title='Case counts')
     
     # Create inset and finalize
-    create_predictor_inset(ax_probs, log_data)
+    create_predictor_inset(ax_probs, log_data, hpai_color, lpai_color)
     create_clade_probability_plot(ax_clade_probs, None, mrsi, path, 2023, toval)
     create_cluster_size_comparison_plot(ax_cluster_comparison, path)
     
@@ -1059,9 +1086,7 @@ def main(force=False):
     # Tree is now rotated 90 degrees, so don't override the xlim
     # ax.set_xlim(fromval, toval)
 
-    # Adjust subplot positions to prevent y-axis label overlap
-    # Using subplots_adjust for precise control over spacing
-    fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.08, hspace=0.35, wspace=0.25)
+    # constrained_layout=True automatically handles spacing to prevent overlap
     
     save_figure(fig, approach)
     plt.show()

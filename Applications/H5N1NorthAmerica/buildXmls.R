@@ -3,12 +3,27 @@ library(seqinr)
 # Clear workspace
 rm(list=ls())
 
+# This script creates XML files for BEAST analysis of H5N1 North America data
+# The first type of XML created uses all H5 HPAI and LPAI data
+# Option to subsample LPAI data while keeping all HPAI data is available
+
 # Set random seed for reproducibility
 set.seed(6465546)
 
 # Set the directory to the directory of the file
-this.dir <- dirname(parent.frame(2)$ofile)
+this.dir <- getwd()
 setwd(this.dir)
+
+# Configuration options
+SUBSAMPLE_LPAI <- TRUE  # Set to TRUE to subsample LPAI data, FALSE to use all data
+LPAI_SUBSAMPLE_FRACTION <- 0.25  # Fraction of LPAI sequences to keep (0.5 = 50%)
+
+# Load HPAI/LPAI classification data
+clade_file = read.csv("./tables/HPAI_LPAI.csv", stringsAsFactors = FALSE, header = TRUE)
+# remove all ' ( and ) from names
+clade_file$taxa = gsub("'", "", clade_file$taxa)
+clade_file$taxa = gsub("\\(", "", clade_file$taxa)
+clade_file$taxa = gsub("\\)", "", clade_file$taxa)
 
 # delete all *wgs*.xml files in xmls
 file.remove(list.files("./xmls/", pattern="*.xml", full.names=TRUE))
@@ -37,6 +52,44 @@ for (file in fasta_files) {
   writeLines(lines_cleaned, out_file, useBytes = TRUE)
 }
 
+# Apply LPAI subsampling to fasta files if enabled
+if (SUBSAMPLE_LPAI) {
+  # Get HPAI and LPAI sequences from the classification file
+  hpai_sequences = clade_file$taxa[clade_file$status == "HPAI"]
+  lpai_sequences = clade_file$taxa[clade_file$status == "LPAI"]
+  
+  # Subsample LPAI sequences
+  if (length(lpai_sequences) > 0) {
+    n_lpai_to_keep = max(1, round(length(lpai_sequences) * LPAI_SUBSAMPLE_FRACTION))
+    lpai_to_keep = sample(lpai_sequences, n_lpai_to_keep)
+  } else {
+    lpai_to_keep = character(0)
+  }
+  
+  # Combine HPAI and subsampled LPAI sequences
+  sequences_to_keep = c(hpai_sequences, lpai_to_keep)
+  
+  cat(sprintf("Subsampling LPAI data: keeping %d/%d LPAI sequences (%.1f%%), %d HPAI sequences\n", 
+              length(lpai_to_keep), length(lpai_sequences), 
+              length(lpai_to_keep)/max(1,length(lpai_sequences))*100, 
+              length(hpai_sequences)))
+  
+  # Apply subsampling to all fasta files in xmls directory
+  xmls_fasta_files <- list.files("./xmls/", pattern = "\\.fasta$", full.names = TRUE)
+  for (fasta_file in xmls_fasta_files) {
+    # Read the fasta file
+    fasta_data = seqinr::read.fasta(file = fasta_file, seqtype = "DNA")
+    
+    # Filter to keep only the selected sequences
+    fasta_data_filtered = fasta_data[names(fasta_data) %in% sequences_to_keep]
+    
+    # Write the filtered fasta file back
+    seqinr::write.fasta(sequences = fasta_data_filtered, 
+                        names = names(fasta_data_filtered), 
+                        file.out = fasta_file)
+  }
+}
+
 
 
 fasta_files <- list.files("./xmls/", pattern = "\\.fasta$", full.names = TRUE)
@@ -48,16 +101,18 @@ for (fastafile in fasta_files){
   # read in the first fasta file and keep all the names
   fasta1 = seqinr::read.fasta(file = fastafile, seqtype = "DNA")
   isolates = names(fasta1)
+  
   # collect the dates as the last group after splitting on | 
   dates = sapply(isolates, function(x) strsplit(x, "\\|")[[1]][[3]])
   min = min(as.Date(dates))
   max = max(as.Date(dates))
   start=as.Date("2021-01-01")
   first_intro = as.numeric(max-start)/365
+  
 
   # define the root height for Ne and reassortment variant rates 
   # this is the time of the first introduction
-  rateshiftvals = c(seq(0,  ceiling(first_intro), length.out=5), seq(ceiling(first_intro+1),  20, length.out=5))
+  rateshiftvals = c(seq(0,  ceiling(first_intro), length.out=5), seq(ceiling(first_intro+1),  50, length.out=2), 200)
   # rateshiftvals = seq(0,  first_intro, length.out=5)
   rateshiftvals = unique(rateshiftvals)
   rateshiftvals2 = rateshiftvals
@@ -66,11 +121,11 @@ for (fastafile in fasta_files){
   filename_base = strsplit(basename(fastafile), "_")[[1]][1]
   
   # read in the log file to get the network height
-  filename = paste(filename_base, ".constant", sep="")
+  filename = paste(filename_base, ".skygrowth", sep="")
   # build an inference xml files
   f <- file(sprintf('xmls/%s.rep0.xml',filename), 'w')
   # Open the template file
-  template <- file('../H5N1NorthAmerica/inference_template_wgs_cr.xml', 'r')
+  template <- file('../H5N1NorthAmerica/inference_template_wgs_cr_fixed_evol.xml', 'r')
   
   base=""
   
@@ -111,22 +166,30 @@ for (fastafile in fasta_files){
       writeLines(gsub('insert_ratetimes', paste(rateshiftvals2, collapse=' '), line), f)
       
       # mask all the non isConstant entries, i.e. isinfectedSkyline
-    # } else if (grepl('isconstant-->', line)) {
-    #   writeLines(gsub('isconstant-->', '', line), f)
-    # } else if (grepl('<!--isconstant', line)){
-    #   writeLines(gsub('<!--isconstant', '', line), f)
-    } else if (grepl('isinfectedSkyline-->', line)) {
-      writeLines(gsub('isinfectedSkyline-->', '', line), f)
-    } else if (grepl('<!--isinfectedSkyline', line)){
-      writeLines(gsub('<!--isinfectedSkyline', '', line), f)
+    } else if (grepl('<f idref="sigma2"/>', line)) {
+      # skip this line for constant models
+    } else if (grepl('<operator id="Sigma2Scaler.s:"', line)) {
+      # skip the sigma2 operator block for constant models
+      while (length(line <- readLines(template, n = 1)) > 0 && !grepl('</operator>', line)) {
+        # skip lines until we find the closing operator tag
+      }
+      # the </operator> line is also skipped
+    } else if (grepl('isconstant-->', line)) {
+      writeLines(gsub('isconstant-->', '', line), f)
+    } else if (grepl('<!--isconstant', line)){
+      writeLines(gsub('<!--isconstant', '', line), f)
+    # } else if (grepl('isinfectedSkyline-->', line)) {
+    #   writeLines(gsub('isinfectedSkyline-->', '', line), f)
+    # } else if (grepl('<!--isinfectedSkyline', line)){
+    #   writeLines(gsub('<!--isinfectedSkyline', '', line), f)
     } else if (grepl('isNeSkyline-->', line)) {
       writeLines(gsub('isNeSkyline-->', '', line), f)
     } else if (grepl('<!--isNeSkyline', line)){
       writeLines(gsub('<!--isNeSkyline', '', line), f)
-    } else if (grepl('isISkyline-->', line)) {
-      writeLines(gsub('isISkyline-->', '', line), f)
-    } else if (grepl('<!--isISkyline', line)){
-      writeLines(gsub('<!--isISkyline', '', line), f)
+    # } else if (grepl('isISkyline-->', line)) {
+    #   writeLines(gsub('isISkyline-->', '', line), f)
+    # } else if (grepl('<!--isISkyline', line)){
+    #   writeLines(gsub('<!--isISkyline', '', line), f)
       
     } else if (grepl('isVariable-->', line)) {
       writeLines(gsub('isVariable-->', '', line), f)
@@ -322,7 +385,7 @@ for (fastafile in fasta_files){
 }
 
 
-rateshiftvals = c(seq(0,  first_intro, length.out=40))
+rateshiftvals = c(seq(0,  first_intro, length.out=40), seq(ceiling(first_intro+1),  50, length.out=5), 200)
 rateshiftvals = unique(rateshiftvals)
 rateshiftvals2 = rateshiftvals
 
@@ -653,6 +716,7 @@ for (clade in unique(clade_file$status)){
 ############################################
 
 
+
 # make two copies of the rep0 files into rep1 and rep2
 clade_file = read.csv("./tables/HPAI_LPAI.csv", stringsAsFactors = FALSE, header = TRUE)
 # replace all ' in isolates
@@ -688,8 +752,14 @@ for (fastafile in fasta_files){
   min = min(as.Date(dates))
   max = max(as.Date(dates))
   first_intro = as.numeric(max-min)/365
+
+  rateshiftvals = c(seq(0,  first_intro, length.out=40), seq(ceiling(first_intro),  10, length.out=2))
+  rateshiftvals = unique(rateshiftvals)
+  rateshiftvals2 = rateshiftvals
+
+
   
-  cases = read.csv("./tables/APHIS_WildBirdAvianInfluenzaSurveillanceDashboard.csv")
+  cases = read.csv("./tables/APHIS_WildBirdAvianInfluenzaSurveillanceDashboard_with_flyways.csv")
   # convert dates to decimal
   cases$date = as.Date(cases$Date_Collected, format="%Y-%m-%d")
   # now, convert to decimal
@@ -705,12 +775,12 @@ for (fastafile in fasta_files){
   # loop over all days
   max_date = decimal_date(max)
   smoothed_case_data = data.frame()
-  # smoothing area
-  diff = min(diff(rateshiftvals))/2
+  # smoothing area (expanded window)
+  diff = 2 * min(diff(rateshiftvals))
   for (d in max_date-rateshiftvals){
     # get all instances within that time window
     window = cases[cases$decimal_date >= d-diff & cases$decimal_date <= d+diff, ]
-    window_alt = cases[cases$decimal_date >= d-diff-14/365 & cases$decimal_date <= d+diff-14/365, ]
+    window_alt = cases[cases$decimal_date >= d-diff-7/365 & cases$decimal_date <= d+diff-7/365, ]
     
     
     # get how many instances of Final_IAV are Detected
@@ -726,24 +796,52 @@ for (fastafile in fasta_files){
     lpai_alt = window_alt[window_alt$Final_H5 == "Detected" &  window_alt$Final_Pathogenicity != "High Path AI", ]
     hpai_alt = window_alt[window_alt$Final_H5 == "Detected" &  window_alt$Final_Pathogenicity == "High Path AI", ]
     
-    # check for states that are in both
+    print(lpai$flyway)
+    # compute overlap as function of LPAI prevalence * HPAI prevalence
     if (nrow(lpai) > 0 && nrow(hpai) > 0){
-      overlap = length(intersect(lpai$County, hpai$County))
+      # Calculate total samples per flyway in this window
+      total_samples_by_flyway = aggregate(rep(1, nrow(window)), by=list(flyway=window$flyway), FUN=sum)
+      
+      # Calculate LPAI prevalence by flyway
+      lpai_counts = aggregate(rep(1, nrow(lpai)), by=list(flyway=lpai$flyway), FUN=sum)
+      names(lpai_counts)[2] = "lpai_count"
+      lpai_prevalence = merge(total_samples_by_flyway, lpai_counts, by="flyway", all.x=TRUE)
+      names(lpai_prevalence)[2] = "total_count"
+      lpai_prevalence$lpai_count[is.na(lpai_prevalence$lpai_count)] = 0
+      lpai_prevalence$lpai_prevalence = lpai_prevalence$lpai_count / lpai_prevalence$total_count
+      
+      # Calculate HPAI prevalence by flyway
+      hpai_counts = aggregate(rep(1, nrow(hpai)), by=list(flyway=hpai$flyway), FUN=sum)
+      names(hpai_counts)[2] = "hpai_count"
+      hpai_prevalence = merge(total_samples_by_flyway, hpai_counts, by="flyway", all.x=TRUE)
+      names(hpai_prevalence)[2] = "total_count"
+      hpai_prevalence$hpai_count[is.na(hpai_prevalence$hpai_count)] = 0
+      hpai_prevalence$hpai_prevalence = hpai_prevalence$hpai_count / hpai_prevalence$total_count
+      
+      # Calculate overlap as sum of flyways that have both LPAI and HPAI cases
+      # Get flyways with LPAI cases
+      lpai_flyways = unique(lpai_prevalence$flyway[lpai_prevalence$lpai_count > 0])
+      # Get flyways with HPAI cases  
+      hpai_flyways = unique(hpai_prevalence$flyway[hpai_prevalence$hpai_count > 0])
+      # calculate the product of the prevalence of the two flyways
+      product = lpai_prevalence$lpai_prevalence * hpai_prevalence$hpai_prevalence
+      overlap = sum(product)
     }else{
-      overlap= 0
+      overlap = 0
     }
     
-    smoothed_case_data = rbind(smoothed_case_data, data.frame(
-      date = d,
-      positivity = (total_H5-total_HPAI),
-      type = "lpai_nosummer"
-    ))
     
-    smoothed_case_data = rbind(smoothed_case_data, data.frame(
-      date = d,
-      positivity = (total_H5-total_HPAI),
-      type = "h5_lpai"
-    ))
+    # smoothed_case_data = rbind(smoothed_case_data, data.frame(
+    #   date = d,
+    #   positivity = (total_H5-total_HPAI),
+    #   type = "lpai_nosummer"
+    # ))
+    
+    # smoothed_case_data = rbind(smoothed_case_data, data.frame(
+    #   date = d,
+    #   positivity = (total_H5-total_HPAI),
+    #   type = "h5_lpai"
+    # ))
     smoothed_case_data = rbind(smoothed_case_data, data.frame(
       date = d,
       positivity = (total_AIV-total_HPAI),
@@ -760,18 +858,16 @@ for (fastafile in fasta_files){
       type = "total"
     ))
 
-    smoothed_case_data = rbind(smoothed_case_data, data.frame(
-      date = d,
-      positivity = overlap,
-      type = "overlap"
-    ))
+    # smoothed_case_data = rbind(smoothed_case_data, data.frame(
+    #   date = d,
+    #   positivity = overlap,
+    #   type = "overlap"
+    # ))
     
   }
   
-  
   # set the values for summer 2022 to min value for the no_summer predictor
-  smoothed_case_data$positivity[smoothed_case_data$type == "lpai_nosummer" & smoothed_case_data$date >= decimal_date(as.Date("2022-07-01")) & smoothed_case_data$date <= decimal_date(as.Date("2023-03-01"))] = 0
-  
+  smoothed_case_data$positivity[smoothed_case_data$type == "lpai_nosummer" & smoothed_case_data$date >= decimal_date(as.Date("2022-07-01")) & smoothed_case_data$date <= decimal_date(as.Date("2023-03-01"))] = 0 
   
   # plot the smoothed case data
   library(ggplot2)
@@ -782,7 +878,7 @@ for (fastafile in fasta_files){
   # add the mimum case positivity above 0 to each value
   
   # set independetafter as the rate shift corresponding to the first_intro
-  independentafter = first_intro_index+1
+  independentafter = first_intro_index
   
 
 
@@ -843,7 +939,7 @@ for (fastafile in fasta_files){
         cases_string = paste(log_cases_vector, collapse=' ')
         writeLines(sprintf('\t\t\t<stateNode id="%s" spec="parameter.RealParameter" value="%s"/>\n', case_type, cases_string), f)
       }
-      writeLines('\t\t\t<parameter id="predictorActive" spec="parameter.IntegerParameter" name="stateNode" upper="7" lower="0">7</parameter>\n', f)
+      writeLines('\t\t\t<parameter id="predictorActive" spec="parameter.IntegerParameter" name="stateNode" upper="4" lower="0">4</parameter>\n', f)
       writeLines('\t\t\t<parameter id="effectSize" spec="parameter.RealParameter" name="stateNode" lower="0">1</parameter>\n', f)
     }else if (grepl(' <operator id="FixMeanMutationRatesOperator"', line)){
       writeLines(sprintf('\t\t\t<operator id="PredictorOperator" spec="ChangePredictorOperator" weight="5"  independentAfter="%d" predictorIsActive="@predictorActive" neToReassortment="@InfectedToRho">',independentafter), f)
@@ -991,6 +1087,126 @@ for (fastafile in fasta_files){
     geom_vline(xintercept = max_date-rateshiftvals[independentafter], linetype="dashed", color = "red") +
     xlim(c(2020,2025.5))
   plot(p)
+  
+  # Create flyway-level plot
+  # Aggregate cases by flyway and type
+  flyway_data <- data.frame()
+  
+  for (d in max_date-rateshiftvals){
+    # get all instances within that time window
+    window = cases[cases$decimal_date >= d-diff & cases$decimal_date <= d+diff, ]
+    
+    # get LPAI and HPAI cases by flyway
+    lpai_window = window[window$Final_H5 == "Detected" & window$Final_Pathogenicity != "High Path AI", ]
+    hpai_window = window[window$Final_H5 == "Detected" & window$Final_Pathogenicity == "High Path AI", ]
+    
+    lpai_by_flyway = data.frame()
+    hpai_by_flyway = data.frame()
+    
+    if(nrow(lpai_window) > 0) {
+      lpai_by_flyway = aggregate(rep(1, nrow(lpai_window)), 
+                                 by=list(flyway=lpai_window$flyway), 
+                                 FUN=sum, na.rm=TRUE)
+    }
+    
+    if(nrow(hpai_window) > 0) {
+      hpai_by_flyway = aggregate(rep(1, nrow(hpai_window)), 
+                                 by=list(flyway=hpai_window$flyway), 
+                                 FUN=sum, na.rm=TRUE)
+    }
+    
+    # Add type labels and combine
+    if(nrow(lpai_by_flyway) > 0) {
+      lpai_by_flyway$type <- "LPAI"
+      names(lpai_by_flyway)[2] <- "count"
+      flyway_data <- rbind(flyway_data, data.frame(date=d, lpai_by_flyway))
+    }
+    
+    if(nrow(hpai_by_flyway) > 0) {
+      hpai_by_flyway$type <- "HPAI"
+      names(hpai_by_flyway)[2] <- "count"
+      flyway_data <- rbind(flyway_data, data.frame(date=d, hpai_by_flyway))
+    }
+  }
+  
+  # Create the flyway plot
+  if(nrow(flyway_data) > 0) {
+    p_flyway <- ggplot(flyway_data, aes(x=date, y=count, color=type)) +
+      geom_line() +
+      labs(title = "LPAI and HPAI Cases by Flyway", x = "Date", y = "Case Count") +
+      theme_minimal() +
+      facet_wrap(~flyway, scales = "free_y") +
+      geom_vline(xintercept = max_date-rateshiftvals[independentafter], linetype="dashed", color = "red") +
+      xlim(c(2020,2025.5)) +
+      scale_color_manual(values = c("LPAI" = "blue", "HPAI" = "red"))
+    
+    plot(p_flyway)
+  }
+  
+  # Create overlap prevalence plot by flyway
+  overlap_data <- data.frame()
+  
+  for (d in max_date-rateshiftvals){
+    # get all instances within that time window
+    window = cases[cases$decimal_date >= d-diff & cases$decimal_date <= d+diff, ]
+    
+    # get LPAI and HPAI cases by flyway
+    lpai_window = window[window$Final_H5 == "Detected" & window$Final_Pathogenicity != "High Path AI", ]
+    hpai_window = window[window$Final_H5 == "Detected" & window$Final_Pathogenicity == "High Path AI", ]
+    
+    if(nrow(lpai_window) > 0 && nrow(hpai_window) > 0) {
+      # Calculate total samples per flyway in this window
+      total_samples_by_flyway = aggregate(rep(1, nrow(window)), by=list(flyway=window$flyway), FUN=sum)
+      
+      # Calculate LPAI prevalence by flyway
+      lpai_counts = aggregate(rep(1, nrow(lpai_window)), by=list(flyway=lpai_window$flyway), FUN=sum)
+      names(lpai_counts)[2] = "lpai_count"
+      lpai_prevalence = merge(total_samples_by_flyway, lpai_counts, by="flyway", all.x=TRUE)
+      names(lpai_prevalence)[2] = "total_count"
+      lpai_prevalence$lpai_count[is.na(lpai_prevalence$lpai_count)] = 0
+      lpai_prevalence$lpai_prevalence = lpai_prevalence$lpai_count / lpai_prevalence$total_count
+      
+      # Calculate HPAI prevalence by flyway
+      hpai_counts = aggregate(rep(1, nrow(hpai_window)), by=list(flyway=hpai_window$flyway), FUN=sum)
+      names(hpai_counts)[2] = "hpai_count"
+      hpai_prevalence = merge(total_samples_by_flyway, hpai_counts, by="flyway", all.x=TRUE)
+      names(hpai_prevalence)[2] = "total_count"
+      hpai_prevalence$hpai_count[is.na(hpai_prevalence$hpai_count)] = 0
+      hpai_prevalence$hpai_prevalence = hpai_prevalence$hpai_count / hpai_prevalence$total_count
+      
+      # Calculate overlap prevalence (LPAI prevalence * HPAI prevalence) for each flyway
+      merged_prevalence = merge(lpai_prevalence[,c("flyway", "lpai_prevalence")], 
+                               hpai_prevalence[,c("flyway", "hpai_prevalence")], 
+                               by="flyway", all.x=TRUE)
+      merged_prevalence$hpai_prevalence[is.na(merged_prevalence$hpai_prevalence)] = 0
+      merged_prevalence$overlap_prevalence = merged_prevalence$lpai_prevalence * merged_prevalence$hpai_prevalence
+      
+      # Add to plot data
+      for(i in 1:nrow(merged_prevalence)) {
+        overlap_data <- rbind(overlap_data, data.frame(
+          date = d,
+          flyway = merged_prevalence$flyway[i],
+          overlap_prevalence = merged_prevalence$overlap_prevalence[i]
+        ))
+      }
+    }
+  }
+  
+  # Create the overlap prevalence plot
+  if(nrow(overlap_data) > 0) {
+    p_overlap <- ggplot(overlap_data, aes(x=date, y=overlap_prevalence, color=flyway)) +
+      geom_line() +
+      labs(title = "Overlap Prevalence by Flyway (LPAI × HPAI)", x = "Date", y = "Overlap Prevalence") +
+      theme_minimal() +
+      facet_wrap(~flyway, scales = "free_y") +
+      geom_vline(xintercept = max_date-rateshiftvals[independentafter], linetype="dashed", color = "red") +
+      xlim(c(2020,2025.5)) +
+      scale_color_viridis_d()
+    
+    # Save the overlap prevalence plot
+    ggsave("overlap_prevalence_by_flyway.png", p_overlap, width = 12, height = 8, dpi = 300)
+    plot(p_overlap)
+  }
 
 
 
@@ -1001,16 +1217,23 @@ files = list.files("xmls", pattern="*.rep0.xml", full.names=TRUE)
 
 
 for (file in files) {
-  file.copy(file, gsub("rep0", "rep1", file))
-  file.copy(file, gsub("rep0", "rep2", file))
-  file.copy(file, gsub("rep0", "rep3", file))
-  file.copy(file, gsub("rep0", "rep4", file))
-  file.copy(file, gsub("rep0", "rep5", file))
-  file.copy(file, gsub("rep0", "rep6", file))
-  file.copy(file, gsub("rep0", "rep7", file))
-  file.copy(file, gsub("rep0", "rep8", file))
-  file.copy(file, gsub("rep0", "rep9", file))
-  
+  # Check if filename contains 'constant'
+  if (grepl("skygrowth", basename(file))) {
+    # For files with 'constant', create all 10 copies (rep0-rep9)
+    file.copy(file, gsub("rep0", "rep1", file))
+    file.copy(file, gsub("rep0", "rep2", file))
+    file.copy(file, gsub("rep0", "rep3", file))
+    file.copy(file, gsub("rep0", "rep4", file))
+    file.copy(file, gsub("rep0", "rep5", file))
+    file.copy(file, gsub("rep0", "rep6", file))
+    file.copy(file, gsub("rep0", "rep7", file))
+    file.copy(file, gsub("rep0", "rep8", file))
+    file.copy(file, gsub("rep0", "rep9", file))
+  } else {
+    # For files without 'constant', only create 2 copies (rep1 and rep2)
+    file.copy(file, gsub("rep0", "rep1", file))
+    file.copy(file, gsub("rep0", "rep2", file))
+  }
 }
 
 # remove anything that doens't contain HLHxNx_

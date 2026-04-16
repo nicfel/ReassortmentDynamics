@@ -26,3 +26,22 @@
 *.csv
 *.png
 *.zip
+Figures/*.*
+# Ignore all files in Applications/InfluenzaANorthAmerica folder
+Applications/InfluenzaANorthAmerica/*
+# Ignore all files in Applications/H5N1NorthAmerica/old_scripts folder
+Applications/H5N1NorthAmerica/old_scripts/*
+*.fasta
+# ignore files /Users/nmueller/Library/CloudStorage/OneDrive-UCSF/Documents/github/CoInfection-Material/Applications/H5N1NorthAmerica/buildXmls3seg.R /Users/nmueller/Library/CloudStorage/OneDrive-UCSF/Documents/github/CoInfection-Material/Applications/H5N1NorthAmerica/buildXmls6seg.R
+Applications/H5N1NorthAmerica/buildXmls3seg.R
+Applications/H5N1NorthAmerica/buildXmls6seg.R
+# ignore any __pycache__ and .ipynb_checkpoints folders
+__pycache__/
+.ipynb_checkpoints/
+# Ignore Test/ Simulations/unused/ Rplots.pdf *.tex
+Test/
+Simulations/unused/
+Rplots.pdf
+Applications/H5N1NorthAmerica/SIR_SIS/seq-gen
+*.RDS
+*state

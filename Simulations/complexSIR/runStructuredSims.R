@@ -20,7 +20,7 @@ dir.create("master")
 param_file <- file('SIR_simulations.txt', 'w')
 
 # define the number of states
-nstates = 100
+nstates = 10
 
 # Initialize the parameters for the SIR simulations
 param_file <- file('structuredSIR_simulations.txt', 'w')
@@ -91,10 +91,9 @@ for (i in 1:100) {
 
   # Run the xml using BEAST and the system command, while preventing any logging to screen
   system(sprintf('/Applications/BEAST\\ 2.7.6/bin/beast -seed %d -overwrite master/structuredSIR_simulations_%d.xml', i, i))
-  das
 }
 close(param_file)
-dsa
+
 
 # Read tree files and simulate sequence alignment
 library(ape)

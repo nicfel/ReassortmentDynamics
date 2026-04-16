@@ -25,18 +25,18 @@ setwd(this.dir)
 # recovery_rate <- 1
 # 
 # # Loop over 100 runs
-# for (i in 1:100) {
+# for (i in 1:20) {
 #   # Make a new xml file for each run
 #   f <- file(sprintf('master/SIR_simulations_%d.xml', i), 'w')
 #   # Open the template file
 #   template <- file('simulation_template.xml', 'r')
-#   
+# 
 #   # Randomly sample the transmission rate from a lognormal distribution with mean 3 and S 0.25
 #   transmission <- rlnorm(1, meanlog = 1.0986122886681098, sdlog = 0.25)
 #   while (transmission < 1.2) {
 #     transmission <- rlnorm(1, meanlog = 1.0986122886681098, sdlog = 0.25)
 #   }
-#   
+# 
 #   # Randomly sample the sampling rate from a lognormal distribution with mean 0.01 and S 0.5
 #   sampling <- rlnorm(1, meanlog = -4.605170185988091, sdlog = 0.25)
 #   # Randomly sample the population size from a lognormal distribution with mean 10000 and S 0.5
@@ -44,12 +44,12 @@ setwd(this.dir)
 #   # Randomly sample the k of the negative binomial distribution from a lognormal distribution with mean 1 and S 0.5
 #   k <- rlnorm(1, meanlog = 0, sdlog = 1)
 # 
-#   
+# 
 #   # Write the parameters to the file
 #   cat(sprintf('%f\t%f\t%f\t%f\t%f\n', transmission, recovery_rate, sampling, population_size, k), file=param_file)
-#   
+# 
 #   # Write the parameters to the xml file
-#   if (i>50){
+#   if (i>10){
 #     while (length(line <- readLines(template, n = 1)) > 0) {
 #       if (grepl('spec="SIRwithReassortment"', line)) {
 #         writeLines(gsub('spec="SIRwithReassortment"', 'spec="SuperspreadingSIRwithReassortment"', line), f)
@@ -85,9 +85,9 @@ setwd(this.dir)
 #     close(f)
 #     close(template)
 #   }
-#   
+# 
 #   # Run the xml using BEAST and the system command
-#   system(sprintf('/Applications/BEAST\\ 2.7.6/bin/beast -seed %d -overwrite master/SIR_simulations_%d.xml', i, i))
+#   system(sprintf('/Applications/BEAST\\ 2.7.7/bin/beast -seed %d -overwrite master/SIR_simulations_%d.xml', i, i))
 # }
 # 
 # close(param_file)
@@ -119,7 +119,7 @@ for (tree_file in trees) {
     write.tree(tree, file = tree_filename)
     
     # Call Seq-Gen to simulate sequences
-    output_filename <- sprintf('xmls/%s_%d.nexus', basename(tree_file), j)
+    output_filename <- sprintf('../xmls/%s_%d.nexus', basename(tree_file), j)
     
     seq_gen_command <- sprintf("./seq-gen -mHKY -on -s0.001 < %s > %s", tree_filename, output_filename)
     system(seq_gen_command)
@@ -155,7 +155,7 @@ for (tree_file in trees) {
   # get the basename of the xml by replacing the .trees. with .constant.
   filename = gsub(".trees", ".constant", basename(tree_file))  
   # build an inference xml files
-  f <- file(sprintf('xmls/%s.xml',filename), 'w')
+  f <- file(sprintf('../xmls/%s.xml',filename), 'w')
   # Open the template file
   template <- file('inference_template.xml', 'r')
   while (length(line <- readLines(template, n = 1)) > 0) {
@@ -201,8 +201,8 @@ for (tree_file in trees) {
   close(template)
 
   # make a second xml where the .trees is replaced by .infected
-  filename = gsub(".trees", ".infected", basename(tree_file))
-  f <- file(sprintf('xmls/%s.xml', filename), 'w')
+  filename = gsub(".trees", ".skygrowth", basename(tree_file))
+  f <- file(sprintf('../xmls/%s.xml', filename), 'w')
   # Open the template file
   template <- file('inference_template.xml', 'r')
   while (length(line <- readLines(template, n = 1)) > 0) {
@@ -246,8 +246,8 @@ for (tree_file in trees) {
   
   
   # make a second xml where the .trees is replaced by .infected
-  filename = gsub(".trees", ".ne", basename(tree_file))
-  f <- file(sprintf('xmls/%s.xml', filename), 'w')
+  filename = gsub(".trees", ".skygrowthNe", basename(tree_file))
+  f <- file(sprintf('../xmls/%s.xml', filename), 'w')
   # Open the template file
   template <- file('inference_template.xml', 'r')
   while (length(line <- readLines(template, n = 1)) > 0) {

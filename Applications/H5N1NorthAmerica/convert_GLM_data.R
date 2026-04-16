@@ -9,13 +9,16 @@ library(cowplot)
 
 rm(list=ls())
 
+this.dir <- dirname(parent.frame(2)$ofile)
+setwd(this.dir)
+
 clades = c("B3.13", "D1.1")
 rate_shift_str = '0 0.105936073059361 0.211872146118721 0.317808219178082 0.423744292237443 0.529680365296804 0.635616438356164 0.741552511415525 0.847488584474886 0.953424657534247 1.05936073059361 1.16529680365297 1.27123287671233 1.37716894977169 1.48310502283105 1.58904109589041 1.69497716894977 1.80091324200913 1.90684931506849 2.01278538812785 2.11872146118721 2.22465753424658 2.33059360730594 2.4365296803653 2.54246575342466 2.64840182648402 2.75433789954338 2.86027397260274 2.9662100456621 3.07214611872146 3.17808219178082 3.28401826484018 3.38995433789954 3.4958904109589 3.60182648401827 3.70776255707763 3.81369863013699 3.91963470319635 4.02557077625571 4.13150684931507'
 rate_shifts = as.numeric(strsplit(rate_shift_str, " ")[[1]])
 
-system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ","-burnin 20 -log ./out/HPAI_HLHxNx.glm.rep*.trees -o ./combined/HPAI_HLHxNx.glm.trees"))
+system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner ","-burnin 20 -log ./out2/HPAI_HLHxNx.glm.rep*.trees -o ./combined/HPAI_HLHxNx.glm.trees"))
 system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher ReassortmentNetworkSummarize -burnin 0 -followSegment 0  -positions MCC  ./combined/HPAI_HLHxNx.glm.trees ./combined/HPAI_HLHxNx.glm.tree"))
-system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out/HPAI_HLHxNx.glm.rep*.log -o ./combined/HPAI_HLHxNx.glm.log"))
+system(paste("/Applications/BEAST\\ 2.7.7/bin/logcombiner -burnin 20 -log ./out2/HPAI_HLHxNx.glm.rep*.log -o ./combined/HPAI_HLHxNx.glm.log"))
 
 system(paste("/Applications/BEAST\\ 2.7.7/bin/applauncher GetCladeHeightsFromNetwork",
              "-burnin 0 -tree ./combined/HPAI_HLHxNx.glm.trees -clade ./tables/cow_clade.csv -out ./combined/b113_glm.tsv"))

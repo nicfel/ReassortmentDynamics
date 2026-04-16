@@ -1,0 +1,87 @@
+\documentclass{article}
+\usepackage{graphicx}
+\begin{document}
+
+% This file contains expanded figure captions for supplementary figures
+% based on analysis of the plotting scripts
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/Supplemental/Sir_constant.pdf}
+    \caption{\textbf{Reassortment rate estimation from SIR models assuming constant reassortment rates over time.} Correlation between true time-weighted prevalence (x-axis) and estimated prevalence from reassortment rates (y-axis) for SIR simulations. Points represent individual simulation runs, with blue points indicating simulations without superspreading and orange points indicating simulations with superspreading. Error bars show 95\% credible intervals for the estimated prevalence. The dashed diagonal line represents perfect agreement (slope = 1). The plot demonstrates how well constant reassortment rate models can recover the underlying disease prevalence when the ratio between true and estimated reassortment events is accounted for.}
+    \label{fig:SIR_const}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/Supplemental/Sir.pdf}
+    \caption{\textbf{Time-varying reassortment rate estimation from SIR models.} \textbf{A-J} Results from 10 representative SIR simulation runs showing the comparison between true disease prevalence (black lines) and estimated prevalence from time-varying reassortment rate inference (colored ribbons). Each panel represents one simulation run, with the top row showing simulations without superspreading (runs 1-5) and bottom row showing simulations with superspreading (runs 6-10). Blue ribbons represent skygrowth method estimates and orange ribbons represent skygrowthNe method estimates. The ribbons show credible intervals across different quantiles (10\%-95\%), with darker shading indicating higher confidence. Time is shown relative to the most recent sampled individual (MRSI). Both methods successfully capture the general trends in disease prevalence over time, with some differences in uncertainty estimates.}
+    \label{fig:SIR_timevarying}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/Supplemental/Sir_superspreading.pdf}
+    \caption{\textbf{Time-varying reassortment rate estimation from SIR with superspreading models.} \textbf{A-J} Results from 10 representative SIR simulation runs with superspreading events, showing the comparison between true disease prevalence (black lines) and estimated prevalence from time-varying reassortment rate inference (colored ribbons). Each panel represents one simulation run with heterogeneous transmission patterns that include superspreading events. Blue ribbons represent skygrowth method estimates and orange ribbons represent skygrowthNe method estimates. The ribbons show credible intervals across different quantiles (10\%-95\%). Time is shown relative to the most recent sampled individual. The presence of superspreading creates more variable prevalence dynamics, which both inference methods attempt to capture, though with varying degrees of success in different runs.}
+    \label{fig:SIR_superspreading}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/Supplemental/Sir_constant_events.pdf}
+    \caption{\textbf{Number of reassortment events estimated with and without accounting for time-varying reassortment rates and effective population sizes.} Comparison of true versus estimated number of reassortment events across different inference methods. Each point represents one simulation run, with the x-axis showing the true number of reassortment events and y-axis showing the estimated number. Error bars represent 95\% credible intervals for the estimates. The dashed diagonal line indicates perfect agreement (estimated = true). Top panel shows results for constant reassortment rate models, middle panel shows skygrowth method results, and bottom panel shows skygrowthNe method results. The plot demonstrates the accuracy and precision of different methods in estimating reassortment event counts, with deviations from the diagonal indicating systematic biases or estimation uncertainty.}
+    \label{fig:SIR_events}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/Supplemental/Sir_constant_events_distr.pdf}
+    \caption{\textbf{Bias in the number of reassortment events estimated with and without accounting for time-varying reassortment rates and effective population sizes.} Distribution of estimation bias (estimated minus true number of reassortment events) across different inference methods. Each histogram shows the frequency of different bias values, with zero bias indicating perfect estimation accuracy. Top panel shows results for constant reassortment rate models, middle panel shows skygrowth method results, and bottom panel shows skygrowthNe method results. The dashed vertical line at zero indicates no bias. Positive values indicate overestimation while negative values indicate underestimation. The width and centering of each distribution reveals systematic biases and the precision of each estimation method.}
+    \label{fig:SIR_events_bias}
+\end{figure>
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/Supplemental/StructuredSir_skygrowth.pdf}
+    \caption{\textbf{Time-varying reassortment rate estimation from structured SIR models using skygrowth method.} \textbf{A-J} Results from structured SIR simulations with 20 demographic states, showing the comparison between true prevalence patterns (lines) and estimated prevalence from reassortment rate inference (blue ribbons). Each panel represents one simulation run. Black lines show mean prevalence across states, brown lines show lineage-weighted mean prevalence across states. Blue ribbons show credible intervals from the skygrowth method estimates. Small grey dots indicate the timing of true reassortment events. The structured model incorporates population subdivision and migration between states, creating more complex prevalence dynamics. Time is shown relative to simulation time, and the method attempts to capture these complex spatial-temporal patterns in disease spread and reassortment.}
+    \label{fig:StructuredSIR_skygrowth}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/Supplemental/StructuredSir_skygrowthNe.pdf}
+    \caption{\textbf{Time-varying reassortment rate estimation from structured SIR models when modeling reassortment rates as a function of effective population size.} \textbf{A-J} Results from structured SIR simulations with 20 demographic states using the skygrowthNe method, which explicitly models the relationship between reassortment rates and effective population size. Each panel represents one simulation run. Black lines show mean prevalence across states, brown lines show lineage-weighted mean prevalence across states. Orange ribbons show credible intervals from the skygrowthNe method estimates that incorporate effective population size dynamics. Small grey dots indicate the timing of true reassortment events. This method accounts for how changes in effective population size affect the opportunities for co-infection and subsequent reassortment, potentially providing more accurate estimates when population dynamics are important.}
+    \label{fig:StructuredSIR_skygrowthNe}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/Supplemental/StructuredSir_constant_events.pdf}
+    \caption{\textbf{Number of reassortment events estimated from structured SIR models with and without accounting for time-varying reassortment rates and effective population sizes.} Comparison of true versus estimated number of reassortment events for structured SIR simulations across different inference methods. Each point represents one simulation run from a 20-state demographic model with migration. The x-axis shows the true number of reassortment events and y-axis shows the estimated number. Error bars represent 95\% credible intervals. The dashed diagonal line indicates perfect agreement. Different panels show results for constant, skygrowth, and skygrowthNe methods applied to structured population models. The structured nature of these simulations, with population subdivision and migration, creates additional complexity that may affect the accuracy of reassortment event estimation compared to simple SIR models.}
+    \label{fig:StructuredSIR_events}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/Supplemental/Validation.pdf}
+    \caption{\textbf{Validation of MCMC implementation through comparison of network heuristics sampled under prior and posterior distributions.} \textbf{A} Comparison of network statistics (such as number of reassortment nodes, tree height, and other topological features) between networks sampled directly from the prior distribution and networks sampled during MCMC inference under the same distributional assumptions. This validation ensures that the Hastings ratios and proposal mechanisms in the MCMC algorithm are correctly implemented. Agreement between the two distributions indicates that the sampling algorithm is unbiased and correctly targets the intended probability distribution. Deviations would suggest implementation errors in the MCMC proposals or acceptance ratios. This type of validation is crucial for ensuring the reliability of phylogenetic inference methods that use complex tree space proposals.}
+    \label{fig:validation}
+\end{figure}
+
+\subsection*{Supplemental Tables}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1\linewidth]{Figures/supp_DTA/final_results_flyway_oe.pdf}
+    \caption{\textbf{Results of permutation test for migratory flyways.} Statistical analysis testing whether reassortment events show significant association with migratory flyway patterns in avian influenza virus evolution. The table shows observed and expected values for reassortment events within and between different flyways, along with p-values from permutation tests. Significant associations would indicate that migratory routes influence viral reassortment patterns, potentially due to host mixing patterns, seasonal migration timing, or geographic constraints on viral gene flow. This analysis helps determine whether flyway structure is an important factor in understanding reassortment dynamics in wild bird populations.}
+    \label{Table S1}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1\linewidth]{Figures/supp_DTA/final_results_orders_oe.pdf}
+    \caption{\textbf{Results of permutation test for host taxonomy (avian orders).} Statistical analysis testing whether reassortment events show significant association with host taxonomic groups at the order level. The table presents observed versus expected reassortment frequencies within and between different avian orders, with significance assessed through permutation testing. Significant deviations from expected values would indicate that host taxonomy influences reassortment patterns, potentially reflecting host-specific factors such as immune responses, receptor binding preferences, cellular tropism, or ecological niches that affect cross-species transmission and subsequent reassortment opportunities. This analysis reveals whether phylogenetic relatedness among host species is an important constraint on viral reassortment dynamics.}
+    \label{Table S2}
+\end{figure}
+
+\end{document}

@@ -1,6 +1,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
 import pandas as pd
 import os
@@ -20,7 +21,7 @@ def setup_matplotlib():
     mpl.rcParams['axes.labelweight'] = 300
     mpl.rcParams['font.family'] = typeface
     mpl.rcParams['font.size'] = 12
-    mpl.rcParams['axes.labelsize'] = 12
+    mpl.rcParams['axes.labelsize'] = 13  # Slightly larger for readability
     mpl.rcParams['axes.titlesize'] = 12
     mpl.rcParams['xtick.labelsize'] = 10
     mpl.rcParams['ytick.labelsize'] = 10
@@ -63,8 +64,8 @@ def define_constants():
     }
     
     lineage_colors = {
-        "HPAI": "#d62728",            # red (matching plot_glm.py)
-        "LPAI": "#2ca02c",            # green (matching plot_glm.py)
+        "HPAI": "#ad5252",            # muted red (Daly City-inspired, matching plot_glm.py)
+        "LPAI": "#407499",            # muted blue (Daly City-inspired, matching plot_glm.py)
         "unknown": "#4DAF4A"          # green
     }
     
@@ -95,7 +96,7 @@ def run_beast_commands(path, force=False):
     
     # 1. Combine tree files
     print("Running BEAST logcombiner for trees...")
-    logcombiner_cmd = f"{beast_path}logcombiner -burnin 20 -log ./out/HLHxNx.skygrowth.rep*.trees -o ./combined/HLHxNx.skygrowth.trees"
+    logcombiner_cmd = f"{beast_path}logcombiner -burnin 20 -log ./out2/HLHxNx.skygrowth.rep*.trees -o ./combined/HLHxNx.skygrowth.trees"
     subprocess.run(logcombiner_cmd, shell=True, cwd=path)
     
     # 2. Summarize network
@@ -105,7 +106,7 @@ def run_beast_commands(path, force=False):
     
     # 3. Combine log files
     print("Running BEAST logcombiner for logs...")
-    logcombiner_log_cmd = f"{beast_path}logcombiner -burnin 20 -log ./out/HLHxNx.skygrowth.rep*.log -o ./combined/HLHxNx.skygrowth.log"
+    logcombiner_log_cmd = f"{beast_path}logcombiner -burnin 20 -log ./out2/HLHxNx.skygrowth.rep*.log -o ./combined/HLHxNx.skygrowth.log"
     subprocess.run(logcombiner_log_cmd, shell=True, cwd=path)
     
     # 4. Mark clades
@@ -125,6 +126,15 @@ def run_beast_commands(path, force=False):
         
         treeannotator_cmd = f"{beast_path}treeannotator -burnin 0 -height keep ./combined/HLHxNx.skygrowth.{segment}.trees ./combined/HLHxNx.skygrowth.{segment}.tree"
         subprocess.run(treeannotator_cmd, shell=True, cwd=path)
+    
+    # 6. Run ClusterSizeComparison
+    cluster_output = os.path.join(path, 'combined/HLHxNx.skygrowth.cluster_comparison.txt')
+    if force or not os.path.exists(cluster_output):
+        print("Running ClusterSizeComparison...")
+        cluster_cmd = f"{beast_path}applauncher ClusterSizeComparison -burnin 0 -clade ./tables/HPAI_LPAI.csv ./combined/HLHxNx.skygrowth.trees ./combined/HLHxNx.skygrowth.cluster_comparison.txt"
+        subprocess.run(cluster_cmd, shell=True, cwd=path)
+    else:
+        print("Cluster size comparison file already exists, skipping...")
 
 
 def calculate_reassortment_rates(log_file, mrsi, path):
@@ -296,34 +306,40 @@ def draw_ha_tree_with_clades(ax, ll, mrsi, mrsi_dec, lineage_colors, species_col
         if loc > max_loc_seen:
             max_loc_seen = loc
         
-        # Color based on posterior support (gradient matching R code scale but with green)
+        # Color based on posterior support (gradient matching R code scale but with LPAI blue)
         # R uses: scale_color_gradient2(low="black", mid="#377EB8", high="#377EB8", midpoint=0.7)
-        # Using green (#2ca02c) instead of blue, same scale
+        # Using LPAI blue (#407499) instead of green, same scale
         import matplotlib.colors as mcolors
         
-        # Create gradient: black (0) -> green #2ca02c (0.7) -> green #2ca02c (1)
-        # Green #2ca02c is RGB (44, 160, 44)
+        # LPAI blue #407499 is RGB (64, 116, 153)
+        lpai_blue_rgb = (64, 116, 153)
+        
+        # Create gradient: black (0) -> LPAI blue #407499 (0.7) -> LPAI blue #407499 (1)
         if loc <= 0.7:
-            # Interpolate from black (0,0,0) to green #2ca02c (44, 160, 44) for values 0-0.7
+            # Interpolate from black (0,0,0) to LPAI blue (64, 116, 153) for values 0-0.7
             t = loc / 0.7  # Normalize to 0-1
-            r = int(t * 44)
-            g = int(t * 160)
-            b = int(t * 44)
+            r = int(t * lpai_blue_rgb[0])
+            g = int(t * lpai_blue_rgb[1])
+            b = int(t * lpai_blue_rgb[2])
             col = f'#{r:02x}{g:02x}{b:02x}'
         else:
-            # Stay green for values > 0.7
-            col = '#2ca02c'
+            # Stay LPAI blue for values > 0.7
+            col = '#407499'
+        
+        # Make linewidth wider for branches with support (scale from 0.5 to 1.0 based on support)
+        # Higher support = wider line
+        branch_lw = 0.5 + loc*2  # Range from 0.5 to 1.0
         
         # Draw vertical branch (time direction)
         if not isinstance(k, bt.reticulation) and k.parent:
-            ax.plot([x, xp], [y, y], color=col, linewidth=0.5, zorder=2,
+            ax.plot([x, xp], [y, y], color=col, linewidth=branch_lw, zorder=2,
                    solid_capstyle='round', solid_joinstyle='round')
         
         # Draw horizontal node connections
         if k.branchType == 'node' and len(k.children) >= 2:
             left = k.children[-1].y
             right = k.children[0].y
-            ax.plot([x, x], [left, right], color=col, linewidth=0.5, zorder=2,
+            ax.plot([x, x], [left, right], color=col, linewidth=branch_lw, zorder=2,
                    solid_capstyle='round', solid_joinstyle='round')
         
         # Draw tip points
@@ -374,14 +390,18 @@ def draw_ha_tree_with_clades(ax, ll, mrsi, mrsi_dec, lineage_colors, species_col
     
     # Position legend in bottom-left corner inside the figure
     # Use bbox_to_anchor with small offsets to ensure it's inside the plot area
-    legend1 = ax.legend(handles=legend_elements, loc='lower left', fontsize=9, 
-                        frameon=False, title='cow isolate', title_fontsize=9,
-                        bbox_to_anchor=(0.02, 0.02))
+    # Both legends use x=0.02 for proper horizontal alignment
+    legend_x_offset = 0.02
+    legend_y_offset = 0.02
     
-    # Add colorbar for reassortment support (gradient matching R code scale but with green)
+    legend1 = ax.legend(handles=legend_elements, loc='lower left', fontsize=10, 
+                        frameon=False, title='cow isolate', title_fontsize=10,
+                        bbox_to_anchor=(legend_x_offset, legend_y_offset))
+    
+    # Add colorbar for reassortment support (gradient matching R code scale but with LPAI blue)
     # R uses: scale_color_gradient2(low="black", mid="#377EB8", high="#377EB8", midpoint=0.7)
-    # Using green (#2ca02c) instead of blue, same scale
-    colors_list = ['black', '#2ca02c']
+    # Using LPAI blue (#407499) instead of green, same scale
+    colors_list = ['black', '#407499']
     n_bins = 100
     cmap = LinearSegmentedColormap.from_list('reassortment', colors_list, N=n_bins)
     
@@ -391,30 +411,29 @@ def draw_ha_tree_with_clades(ax, ll, mrsi, mrsi_dec, lineage_colors, species_col
     
     # Add colorbar inside the plot area - create axes manually for consistent PDF output
     # Position it higher (y=0.32) to avoid overlap with cow legend at y=0.02
+    # Align horizontally with cow legend using the same x offset
     # Get the axes position in figure coordinates
     fig = ax.figure
     ax_pos = ax.get_position()
     
     # Calculate colorbar position in figure coordinates
-    # Position in axes coordinates: x=0.02, y=0.32, width=0.15, height=0.03
+    # Position in axes coordinates: x=0.01 (slightly left of legend), y=0.32, width=0.15, height=0.03
     cbar_width = 0.15 * ax_pos.width
     cbar_height = 0.03 * ax_pos.height
-    cbar_x = ax_pos.x0 + 0.02 * ax_pos.width
+    cbar_x = ax_pos.x0 + (legend_x_offset - 0.17) * ax_pos.width  # Slightly left of legend
     cbar_y = ax_pos.y0 + 0.32 * ax_pos.height
     
-    # Create colorbar axes in figure coordinates
+    # Create colorbar axes in figure coordinates for consistent PDF rendering
     cax = fig.add_axes([cbar_x, cbar_y, cbar_width, cbar_height])
     cbar = plt.colorbar(sm, cax=cax, orientation='horizontal')
     cbar.set_label('posterior support for\nHPAI LPAI reassortment', 
-                   fontsize=9, labelpad=5)
+                   fontsize=10, labelpad=8)
     cbar.set_ticks([0, 0.5, 1.0])
     cbar.set_ticklabels(['0', '0.5', '1+'])  # Matching R code breaks and labels
-    cbar.ax.tick_params(labelsize=8)
+    cbar.ax.tick_params(labelsize=10)
     # Remove background from colorbar axes to ensure proper integration
     cbar.ax.patch.set_facecolor('none')
     cbar.ax.patch.set_edgecolor('none')
-    # Ensure colorbar doesn't resize with figure
-    cbar.ax.set_anchor('W')
 
 
 
@@ -446,14 +465,14 @@ def draw_segment_tree(ax, ll, mrsi_dec, lineage_colors, segment_name):
         
         # Draw vertical branch (time direction)
         if not isinstance(k, bt.reticulation) and k.parent:
-            ax.plot([x, xp], [y, y], color=col, linewidth=0.2, zorder=2,
+            ax.plot([x, xp], [y, y], color=col, linewidth=0.5, zorder=2,
                    solid_capstyle='round', solid_joinstyle='round')
         
         # Draw horizontal node connections
         if k.branchType == 'node' and len(k.children) >= 2:
             left = k.children[-1].y
             right = k.children[0].y
-            ax.plot([x, x], [left, right], color=col, linewidth=0.2, zorder=2,
+            ax.plot([x, x], [left, right], color=col, linewidth=0.5, zorder=2,
                    solid_capstyle='round', solid_joinstyle='round')
         
         # Draw tip points
@@ -477,7 +496,7 @@ def draw_segment_tree(ax, ll, mrsi_dec, lineage_colors, segment_name):
     ax.tick_params(left=False, labelleft=False)
 
 
-def plot_reassortment_rates_skygrowth(ax, valid_times, all_quantiles, quantiles_to_plot, mrsi, fromval, toval):
+def plot_reassortment_rates_skygrowth(ax, valid_times, all_quantiles, quantiles_to_plot, mrsi, fromval, toval, lineage_colors):
     """Plot reassortment rates from skygrowth analysis (same structure as plot_glm.py)"""
     # Add timeline shading
     timewidth = 0.5
@@ -513,7 +532,7 @@ def plot_reassortment_rates_skygrowth(ax, valid_times, all_quantiles, quantiles_
         
         # Create shaded ribbon for this confidence interval
         ax.fill_between(valid_times, lower_values, upper_values,
-                       alpha=alpha, color='#C85A3C',  # Strong terracotta
+                       alpha=alpha, color=lineage_colors['LPAI'],
                        label=label, zorder=2, linewidth=0)
     
     # Plot the median as a thick shaded ribbon (same as plot_glm.py)
@@ -529,14 +548,15 @@ def plot_reassortment_rates_skygrowth(ax, valid_times, all_quantiles, quantiles_
     median_lower = median_values - median_thickness
     
     ax.fill_between(valid_times, median_lower, median_upper,
-                   alpha=median_alpha, color='#C85A3C',  # Strong terracotta
+                   alpha=median_alpha, color=lineage_colors['LPAI'],
                    label='Median', zorder=3, linewidth=0)
     
     ax.set_xlim(fromval, toval)
     ax.set_xlabel('')
-    ax.set_ylabel('reassortment rate', labelpad=2)
+    ax.set_ylabel('reassortment rate', labelpad=4)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5, axis='both')  # Subtle grid
     
     # Set x-axis ticks to only show full years
     year_ticks = np.arange(np.ceil(fromval), np.floor(toval) + 1, 1.0)
@@ -788,7 +808,180 @@ def plot_event_distribution(ax, distr_df):
     ax.grid(True, alpha=0.3, axis='y')
 
 
-def plot_co_reassortment(ax, co_rea_quantiles_df, lineage_colors, segment_order):
+def calculate_total_quantiles(hpai_events, segment_order):
+    """Calculate quantiles for total event counts (non-empty events only) across samples"""
+    # Filter for HPAI lineage events only
+    hpai_lineage_events = hpai_events[hpai_events['Lineage'] == 'HPAI'].copy()
+    
+    if len(hpai_lineage_events) == 0:
+        return None, None
+    
+    # Helper function to check if segments are non-empty
+    def is_non_empty(seg_str):
+        if pd.isna(seg_str):
+            return False
+        seg_str = str(seg_str).strip('{} ')
+        return bool(seg_str)
+    
+    # Calculate totals per sample
+    total_counts = {}
+    
+    for sample in hpai_lineage_events['Sample'].unique():
+        sample_data = hpai_lineage_events[hpai_lineage_events['Sample'] == sample]
+        
+        # Count unique events within HPAI (Event == "HPAI") with non-empty segments
+        hpai_within = sample_data[sample_data['Event'] == 'HPAI']
+        hpai_within_non_empty = hpai_within[hpai_within['Segments'].apply(is_non_empty)]
+        total_hpai = len(hpai_within_non_empty)
+        
+        # Count unique events into HPAI from LPAI (Event == "HPAI+LPAI" or "LPAI") with non-empty segments
+        hpai_from_lpai = sample_data[sample_data['Event'].isin(['HPAI+LPAI', 'LPAI'])]
+        hpai_from_lpai_non_empty = hpai_from_lpai[hpai_from_lpai['Segments'].apply(is_non_empty)]
+        total_lpai = len(hpai_from_lpai_non_empty)
+        
+        if sample not in total_counts:
+            total_counts[sample] = {}
+        total_counts[sample]['HPAI'] = total_hpai
+        total_counts[sample]['LPAI'] = total_lpai
+    
+    # Calculate quantiles for each event type
+    hpai_totals = [total_counts[s]['HPAI'] for s in total_counts.keys()]
+    lpai_totals = [total_counts[s]['LPAI'] for s in total_counts.keys()]
+    
+    if len(hpai_totals) == 0:
+        return None, None
+    
+    q = 0.05
+    hpai_lower = np.quantile(hpai_totals, q/2)
+    hpai_upper = np.quantile(hpai_totals, 1 - q/2)
+    hpai_mean = np.mean(hpai_totals)
+    
+    lpai_lower = np.quantile(lpai_totals, q/2)
+    lpai_upper = np.quantile(lpai_totals, 1 - q/2)
+    lpai_mean = np.mean(lpai_totals)
+    
+    hpai_quantiles = {'mean': hpai_mean, 'lower': hpai_lower, 'upper': hpai_upper}
+    lpai_quantiles = {'mean': lpai_mean, 'lower': lpai_lower, 'upper': lpai_upper}
+    
+    return hpai_quantiles, lpai_quantiles
+
+
+def create_cluster_size_comparison_plot(ax, path, lineage_colors):
+    """Create plot showing probability that children with reassortment > children without, across posterior
+    Filtered to resultingClade == HPAI, with separate distributions for incomingClade == LPAI and HPAI"""
+    cluster_file_path = os.path.join(path, 'combined/HLHxNx.skygrowth.cluster_comparison.txt')
+    
+    try:
+        cluster_data = pd.read_csv(cluster_file_path, sep='\t')
+        
+        # Filter for resultingClade == HPAI
+        hpai_data = cluster_data[cluster_data['resultingClade'] == 'HPAI'].copy()
+        
+        if len(hpai_data) == 0:
+            ax.text(0.5, 0.5, 'No HPAI resulting clade events found', 
+                    transform=ax.transAxes, ha='center', va='center')
+            return
+        
+        # Separate by incomingClade
+        lpai_incoming = hpai_data[hpai_data['incomingClade'] == 'LPAI'].copy()
+        hpai_incoming = hpai_data[hpai_data['incomingClade'] == 'HPAI'].copy()
+        
+        # Calculate probabilities for LPAI incoming with bootstrap sampling
+        lpai_probs = []
+        for iteration in lpai_incoming['iteration'].unique():
+            iter_data = lpai_incoming[lpai_incoming['iteration'] == iteration]
+            if len(iter_data) > 0:
+                # Bootstrap sample (with replacement) from events in this iteration
+                n_samples = len(iter_data)
+                bootstrap_indices = np.random.choice(iter_data.index, size=n_samples, replace=True)
+                bootstrap_data = iter_data.loc[bootstrap_indices]
+                
+                # Exclude ties (where leafsWith == leafsWithout) from calculation
+                non_tie_data = bootstrap_data[bootstrap_data['leafsWith'] != bootstrap_data['leafsWithout']]
+                
+                if len(non_tie_data) > 0:
+                    # Count strict greater cases in bootstrapped sample (excluding ties)
+                    with_greater = (non_tie_data['leafsWith'] > non_tie_data['leafsWithout']).sum()
+                    total_comparisons = len(non_tie_data)
+                    prob_with_greater = with_greater / total_comparisons if total_comparisons > 0 else 0
+                    lpai_probs.append(prob_with_greater)
+        
+        # Calculate probabilities for HPAI incoming with bootstrap sampling
+        hpai_probs = []
+        for iteration in hpai_incoming['iteration'].unique():
+            iter_data = hpai_incoming[hpai_incoming['iteration'] == iteration]
+            if len(iter_data) > 0:
+                # Bootstrap sample (with replacement) from events in this iteration
+                n_samples = len(iter_data)
+                bootstrap_indices = np.random.choice(iter_data.index, size=n_samples, replace=True)
+                bootstrap_data = iter_data.loc[bootstrap_indices]
+                
+                # Exclude ties (where leafsWith == leafsWithout) from calculation
+                non_tie_data = bootstrap_data[bootstrap_data['leafsWith'] != bootstrap_data['leafsWithout']]
+                
+                if len(non_tie_data) > 0:
+                    # Count strict greater cases in bootstrapped sample (excluding ties)
+                    with_greater = (non_tie_data['leafsWith'] > non_tie_data['leafsWithout']).sum()
+                    total_comparisons = len(non_tie_data)
+                    prob_with_greater = with_greater / total_comparisons if total_comparisons > 0 else 0
+                    hpai_probs.append(prob_with_greater)
+        
+        # Prepare data for violin plot
+        plot_data = []
+        plot_labels = []
+        
+        if len(lpai_probs) > 0:
+            plot_data.append(lpai_probs)
+            plot_labels.append('LPAI')
+        
+        if len(hpai_probs) > 0:
+            plot_data.append(hpai_probs)
+            plot_labels.append('HPAI')
+        
+        # Create violin plot
+        if len(plot_data) > 0:
+            positions = range(len(plot_data))
+            parts = ax.violinplot(plot_data, positions=positions, widths=0.7, 
+                                 showmeans=False, showmedians=False, showextrema=False)
+            
+            # Color the violins
+            for i, pc in enumerate(parts['bodies']):
+                pc.set_facecolor(lineage_colors[plot_labels[i]])
+                pc.set_alpha(0.7)
+                pc.set_edgecolor('black')
+                pc.set_linewidth(1)
+            
+            # Style the quartile lines
+            if 'cquantiles' in parts:
+                parts['cquantiles'].set_color('black')
+                parts['cquantiles'].set_linewidth(1)
+            
+            # Set x-axis labels
+            ax.set_xticks(positions)
+            ax.set_xticklabels(plot_labels)
+        
+        # Add dashed horizontal line at y=0.5 - more visible reference line
+        ax.axhline(y=0.5, color='#666666', linestyle='--', linewidth=2, alpha=0.8, zorder=0)
+
+        ax.set_xlabel('incoming', labelpad=3)
+        ax.set_ylabel('P(reassortant > non-reassortant)', labelpad=4)
+
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5, axis='y')  # More subtle grid
+        ax.set_ylim(0, 1)
+        
+    except FileNotFoundError:
+        ax.text(0.5, 0.5, 'Cluster comparison file not found', 
+                transform=ax.transAxes, ha='center', va='center')
+    except Exception as e:
+        ax.text(0.5, 0.5, f'Error loading cluster data:\n{str(e)}', 
+                transform=ax.transAxes, ha='center', va='center', fontsize=8)
+        import traceback
+        traceback.print_exc()
+
+
+def plot_co_reassortment(ax, co_rea_quantiles_df, lineage_colors, segment_order, hpai_events=None):
     """Plot co-reassortment events by segment"""
     # Filter for HPAI lineage only
     data = co_rea_quantiles_df[co_rea_quantiles_df['Lineage'] == 'HPAI'].copy()
@@ -798,9 +991,19 @@ def plot_co_reassortment(ax, co_rea_quantiles_df, lineage_colors, segment_order)
     
     desired_order = segment_order[1:]  # skip HA
     segments = [seg for seg in desired_order if seg in set(data['segment'])]
+    
+    # Add "Total" to segments if hpai_events is provided
+    if hpai_events is not None:
+        segments = segments + ['Total']
+    
     x_pos = np.arange(len(segments))
     width = 0.35
     dodge_offset = -0.3  # Match R's position_dodge(-0.3)
+    
+    # Pre-calculate total quantiles if hpai_events is provided
+    total_quantiles = None
+    if hpai_events is not None:
+        total_quantiles = calculate_total_quantiles(hpai_events, segment_order)
     
     for evname in ['HPAI', 'LPAI']:
         ev_data = data[data['evname'] == evname]
@@ -811,16 +1014,40 @@ def plot_co_reassortment(ax, co_rea_quantiles_df, lineage_colors, segment_order)
         lowers = []
         uppers = []
         
+        # Process individual segments
         for s in segments:
-            seg_data = ev_data[ev_data['segment'] == s]
-            if len(seg_data) > 0:
-                means.append(seg_data['mean'].values[0])
-                lowers.append(seg_data['lower'].values[0])
-                uppers.append(seg_data['upper'].values[0])
+            if s == 'Total':
+                # Use pre-calculated totals
+                if total_quantiles is not None:
+                    hpai_quantiles, lpai_quantiles = total_quantiles
+                    if hpai_quantiles is not None and lpai_quantiles is not None:
+                        if evname == 'HPAI':
+                            means.append(hpai_quantiles['mean'])
+                            lowers.append(hpai_quantiles['lower'])
+                            uppers.append(hpai_quantiles['upper'])
+                        else:  # LPAI
+                            means.append(lpai_quantiles['mean'])
+                            lowers.append(lpai_quantiles['lower'])
+                            uppers.append(lpai_quantiles['upper'])
+                    else:
+                        means.append(0)
+                        lowers.append(0)
+                        uppers.append(0)
+                else:
+                    means.append(0)
+                    lowers.append(0)
+                    uppers.append(0)
             else:
-                means.append(0)
-                lowers.append(0)
-                uppers.append(0)
+                # Regular segment processing
+                seg_data = ev_data[ev_data['segment'] == s]
+                if len(seg_data) > 0:
+                    means.append(seg_data['mean'].values[0])
+                    lowers.append(seg_data['lower'].values[0])
+                    uppers.append(seg_data['upper'].values[0])
+                else:
+                    means.append(0)
+                    lowers.append(0)
+                    uppers.append(0)
         
         offset = dodge_offset if evname == 'HPAI' else -dodge_offset
         color = lineage_colors[evname]
@@ -837,68 +1064,82 @@ def plot_co_reassortment(ax, co_rea_quantiles_df, lineage_colors, segment_order)
                    linewidth=1.5, zorder=2)
     
     ax.set_xlabel('')  # Remove x-axis title
-    ax.set_ylabel('events')
+    ax.set_ylabel('events', labelpad=3)
     ax.set_xticks(x_pos)
     ax.set_xticklabels(segments)
-    ax.legend(loc='upper left', fontsize=9, title='segment origin', frameon=False,
-              bbox_to_anchor=(0, 1.18))
+    ax.legend(loc='upper left', fontsize=10, title='segment origin', frameon=False,
+              bbox_to_anchor=(0, 1.15))  # Slightly lower to avoid overlap
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.grid(True, alpha=0.3, axis='y')
+    ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5, axis='y')  # More subtle grid
 
 
 def create_main_figure(path, mrsi, mrsi_dec, segment_order, lineage_colors, species_colors, 
                        hpai_events, distr_df, co_rea_df, co_rea_quantiles_df, 
                        valid_times, all_quantiles, quantiles_to_plot):
-    """Create the main composite figure (Figure 2)"""
-    fig = plt.figure(figsize=(12, 8), constrained_layout=True)
-    # Layout: A (left, top), Reassortment rates (top right), B (left, bottom), C and D (bottom right, side by side)
-    # Top row fills most of the height
+    """Create the main composite figure (Figure 4)"""
+    fig = plt.figure(figsize=(14, 10.5), constrained_layout=True)
+    # Add padding to ensure panel labels outside plot area are visible
+    # Increased padding to accommodate labels positioned at (-0.02, 1.02)
+    fig.set_constrained_layout_pads(w_pad=0.08, h_pad=0.08)
+    # Layout: Compact and balanced - 3x3 grid
+    # A: HA tree (left column, spans rows 0-1) - main focal point, largest panel
+    # B: Reassortment rates (top right, row 0, spans cols 1-2) - time series needs width
+    # C: Co-reassortment (bottom left, row 2, col 0) - bar plot needs width for categories
+    # D: NP tree (middle right, row 1, col 1) - compact tree
+    # E: PB2 tree (middle right, row 1, col 2) - compact tree  
+    # F: Cluster comparison (bottom right, row 2, spans cols 1-2) - violin plot, compact width
     # Use constrained_layout to ensure all content fits within subplot boundaries
-    gs = gridspec.GridSpec(3, 3, width_ratios=[3, 1, 1], height_ratios=[1, 3, 1], 
+    # Width ratios: C (col 0) gets more space than F (cols 1-2 combined)
+    gs = gridspec.GridSpec(3, 3, width_ratios=[4, 1, 1], height_ratios=[1.8, 3.2, 1.4], 
                           figure=fig)
 
-    # Panel A: HA tree with clades (left, top 2 rows)
+    # Consistent panel label style - positioned OUTSIDE plot area (standard scientific figure style)
+    # Labels positioned to the left and above each subplot using transform=transAxes
+    # Position: (-0.02, 1.02) means 2% to left of left edge, 2% above top edge
+    # Alignment: va='bottom', ha='right' aligns label's bottom-right corner at that position
+    panel_label_kwargs = {'fontsize': 16, 'fontweight': 'bold', 'va': 'bottom', 'ha': 'right'}
+    panel_label_pos = (-0.02, 1.02)  # Standard: outside top-left corner
+    
+    # Panel A: HA tree with clades (left column, spans rows 0-1 - main focal point)
     ax_tree = fig.add_subplot(gs[0:2, 0])
     ll_ha = load_and_process_tree(path, "HA")
     if ll_ha:
         draw_ha_tree_with_clades(ax_tree, ll_ha, mrsi, mrsi_dec, lineage_colors, species_colors)
-    ax_tree.text(-0.02, 1.02, 'A', transform=ax_tree.transAxes, 
-                fontsize=16, fontweight='bold', va='bottom', ha='right')
+    ax_tree.text(panel_label_pos[0], panel_label_pos[1], 'A', transform=ax_tree.transAxes, **panel_label_kwargs)
     
-    # Panel B: Reassortment rates (top right)
+    # Panel B: Reassortment rates (top right, row 0, spans cols 1-2)
     ax_rates = fig.add_subplot(gs[0, 1:])
     if valid_times is not None and len(valid_times) > 0:
         fromval = mrsi_dec - 10  # Adjust as needed
         toval = mrsi_dec
         plot_reassortment_rates_skygrowth(ax_rates, valid_times, all_quantiles, quantiles_to_plot, 
-                                         mrsi, fromval, toval)
-    ax_rates.text(-0.02, 1.02, 'B', transform=ax_rates.transAxes, 
-                   fontsize=16, fontweight='bold', va='bottom', ha='right')
+                                         mrsi, fromval, toval, lineage_colors)
+    ax_rates.text(panel_label_pos[0], panel_label_pos[1], 'B', transform=ax_rates.transAxes, **panel_label_kwargs)
     
-    # Panel C: Co-reassortment plot (left, bottom row, below A)
+    # Panel C: Co-reassortment plot (bottom left, row 2, col 0)
     ax_corea = fig.add_subplot(gs[2, 0])
-    plot_co_reassortment(ax_corea, co_rea_quantiles_df, lineage_colors, segment_order)
-    ax_corea.text(-0.02, 1.02, 'C', transform=ax_corea.transAxes, 
-                 fontsize=16, fontweight='bold', va='bottom', ha='right')
+    plot_co_reassortment(ax_corea, co_rea_quantiles_df, lineage_colors, segment_order, hpai_events)
+    ax_corea.text(panel_label_pos[0], panel_label_pos[1], 'C', transform=ax_corea.transAxes, **panel_label_kwargs)
     
-    # Panel D: NP tree (bottom right, first column)
-    ax_tree_c = fig.add_subplot(gs[1:3, 1])
+    # Panel D: NP tree (middle right, row 1, col 1)
+    ax_tree_c = fig.add_subplot(gs[1, 1])
     ll_np = load_and_process_tree(path, "NP")
     if ll_np:
         draw_segment_tree(ax_tree_c, ll_np, mrsi_dec, lineage_colors, "NP")
-    ax_tree_c.text(-0.02, 1.02, 'D', transform=ax_tree_c.transAxes, 
-                  fontsize=16, fontweight='bold', va='bottom', ha='right')
-    ax_tree_c.set_title('NP', fontsize=12, fontweight='bold', pad=5)
+    ax_tree_c.text(panel_label_pos[0], panel_label_pos[1], 'D', transform=ax_tree_c.transAxes, **panel_label_kwargs)
     
-    # Panel E: PB2 tree (bottom right, second column)
-    ax_tree_d = fig.add_subplot(gs[1:3, 2])
+    # Panel E: PB2 tree (middle right, row 1, col 2)
+    ax_tree_d = fig.add_subplot(gs[1, 2])
     ll_pb2 = load_and_process_tree(path, "PB2")
     if ll_pb2:
         draw_segment_tree(ax_tree_d, ll_pb2, mrsi_dec, lineage_colors, "PB2")
-    ax_tree_d.text(-0.02, 1.02, 'E', transform=ax_tree_d.transAxes, 
-                   fontsize=16, fontweight='bold', va='bottom', ha='right')
-    ax_tree_d.set_title('PB2', fontsize=12, fontweight='bold', pad=5)
+    ax_tree_d.text(panel_label_pos[0], panel_label_pos[1], 'E', transform=ax_tree_d.transAxes, **panel_label_kwargs)
+    
+    # Panel F: Cluster size comparison (bottom right, row 2, spans cols 1-2 - compact histogram)
+    ax_cluster = fig.add_subplot(gs[2, 1:])
+    create_cluster_size_comparison_plot(ax_cluster, path, lineage_colors)
+    ax_cluster.text(panel_label_pos[0], panel_label_pos[1], 'F', transform=ax_cluster.transAxes, **panel_label_kwargs)
     
     # constrained_layout=True in figure creation automatically adjusts subplot positions
     # to ensure all labels, titles, and ticks fit within their allocated space
@@ -981,25 +1222,20 @@ def main(force=False, ind=False):
     os.makedirs(output_dir, exist_ok=True)
     
     if ind:
-        fig_main.savefig(os.path.join(output_dir, 'Figure2.pdf'), bbox_inches='tight')
+        fig_main.savefig(os.path.join(output_dir, 'Figure4.pdf'), bbox_inches='tight')
     else:
-        fig_main.savefig(os.path.join(output_dir, 'h5n1_reassortment_dependent.pdf'), 
+        fig_main.savefig(os.path.join(output_dir, 'Figure4.pdf'), 
                          bbox_inches='tight')
     
-    plt.show()
+    # Don't show figures - just save them
     plt.close(fig_main)
     
     # Create all segments figure
     fig_segments = create_all_segments_figure(path, mrsi_dec, segment_order, lineage_colors)
     
-    if ind:
-        fig_segments.savefig(os.path.join(output_dir, 'h5n1_all_segment_trees_skygrowth.pdf'),
-                            bbox_inches='tight')
-    else:
-        fig_segments.savefig(os.path.join(output_dir, 'h5n1_all_segment_trees_dependent.pdf'),
+    fig_segments.savefig(os.path.join(output_dir, 'h5n1_all_segment_trees_skygrowth.pdf'),
                             bbox_inches='tight')
     
-    plt.show()
     plt.close(fig_segments)
     
     print("Analysis complete!")

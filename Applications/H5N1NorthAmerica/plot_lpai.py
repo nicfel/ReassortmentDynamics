@@ -8,6 +8,7 @@ from scipy.stats import gaussian_kde
 import os
 import sys
 import random
+import subprocess
 from datetime import datetime, timedelta
 from matplotlib.patches import FancyBboxPatch
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -81,10 +82,8 @@ def define_constants():
 
 def load_and_process_tree(path, segment, is_constant=True):
     """Load and process the phylogenetic tree using baltic_bacter"""
-    if is_constant:
-        tree_file = f'combined/HLHxNx.constant.{segment}.tree'
-    else:
-        tree_file = f'combined/HLHxNx.dependent.{segment}.tree'
+    # Use skygrowth instead of constant
+    tree_file = f'combined/HLHxNx.skygrowth.{segment}.tree'
     
     tree_path = os.path.join(path, tree_file)
     
@@ -92,10 +91,18 @@ def load_and_process_tree(path, segment, is_constant=True):
         print(f"Warning: Tree file not found: {tree_path}")
         return None
     
-    print(f"Loading tree: {tree_path}")
-    ll = bt.loadNexus(tree_path, date_fmt='%Y-%m-%d', verbose=True)
-    ll.drawTree()
-    return ll
+    try:
+        print(f"Loading tree: {tree_path}")
+        ll = bt.loadNexus(tree_path, date_fmt='%Y-%m-%d', verbose=False)
+        if ll:
+            ll.drawTree()
+            return ll
+        else:
+            print(f"Warning: Failed to load tree from {tree_path}")
+            return None
+    except Exception as e:
+        print(f"Error loading tree {tree_path}: {e}")
+        return None
 
 
 def setup_tree_axes(ax, ll, fromval=2020, toval=2025.5):
@@ -239,10 +246,8 @@ def draw_segment_tree(ax, ll, mrsi_dec, lineage_colors, segment_name, linewidth=
 
 def load_log_file(path, is_constant=True):
     """Load and process log files"""
-    if is_constant:
-        log_file = pd.read_csv(f"{path}/combined/HLHxNx.constant.log", sep='\t')
-    else:
-        log_file = pd.read_csv(f"{path}/combined/HLHxNx.dependent.log", sep='\t')
+    # Use skygrowth instead of constant
+    log_file = pd.read_csv(f"{path}/combined/HLHxNx.skygrowth.log", sep='\t')
     return log_file
 
 
@@ -367,9 +372,36 @@ def plot_reassortment_rate(ax, reassortment_df, smoothed_cases, mrsi, lineage_co
     ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.3, axis='y')
 
 
+def run_cluster_size_comparison(path, force=False):
+    """Run ClusterSizeComparison to get offspring counts for reassortment events"""
+    beast_path = "/Applications/BEAST\\ 2.7.7/bin/"
+    cluster_output = os.path.join(path, 'combined/HLHxNx.skygrowth.cluster_comparison.txt')
+    
+    if force or not os.path.exists(cluster_output):
+        print("Running ClusterSizeComparison...")
+        trees_file = os.path.join(path, 'combined/HLHxNx.skygrowth.trees')
+        if not os.path.exists(trees_file):
+            print(f"Warning: Trees file not found: {trees_file}")
+            return False
+        
+        cluster_cmd = f"{beast_path}applauncher ClusterSizeComparison -burnin 0 ./combined/HLHxNx.skygrowth.trees ./combined/HLHxNx.skygrowth.cluster_comparison.txt"
+        result = subprocess.run(cluster_cmd, shell=True, cwd=path, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(f"Error running ClusterSizeComparison: {result.stderr}")
+            return False
+        
+        print("ClusterSizeComparison completed successfully.")
+        return True
+    else:
+        print("Cluster size comparison file already exists, skipping...")
+        return True
+
+
 def load_clade_events(path, is_constant=True):
     """Load HPAI clade events data"""
-    events_file = f"{path}/combined/HLHxNx.constant.clades.tsv"
+    # Use skygrowth instead of constant
+    events_file = f"{path}/combined/HLHxNx.skygrowth.clades.tsv"
     
     if os.path.exists(events_file):
         events = pd.read_csv(events_file, sep='\t')
@@ -533,8 +565,98 @@ def create_multi_segment_plot(path, segment_order, is_constant=True):
     return fig
 
 
-def create_main_figure(path, is_constant=True):
+def plot_offspring_hpai_from_lpai(ax, hpai_events, path):
+    """Plot number of offspring for events where resultingClade is HPAI and incoming lineage is LPAI"""
+    if hpai_events is None or len(hpai_events) == 0:
+        ax.text(0.5, 0.5, "No event data available", 
+                ha='center', va='center', transform=ax.transAxes)
+        return
+    
+    # Filter for events where Event contains HPAI (resulting clade) and Lineage indicates LPAI involvement
+    # Events where Event is "HPAI+LPAI" and Lineage is "HPAI" represent HPAI receiving from LPAI
+    filtered_events = hpai_events[
+        (hpai_events['Event'] == 'HPAI+LPAI') & 
+        (hpai_events['Lineage'] == 'HPAI')
+    ].copy()
+    
+    if len(filtered_events) == 0:
+        ax.text(0.5, 0.5, "No events found matching\nresultingClade=HPAI,\nincoming lineage=LPAI", 
+                ha='center', va='center', transform=ax.transAxes)
+        return
+    
+    # Load cluster comparison data to get offspring counts
+    cluster_file = os.path.join(path, 'combined/HLHxNx.skygrowth.cluster_comparison.txt')
+    if not os.path.exists(cluster_file):
+        ax.text(0.5, 0.5, "Cluster comparison file not found.\nRun ClusterSizeComparison first.", 
+                ha='center', va='center', transform=ax.transAxes)
+        return
+    
+    try:
+        cluster_data = pd.read_csv(cluster_file, sep='\t')
+        
+        # Get offspring counts (leafsWith) for events matching our filter
+        # We need to match events to clusters - this is simplified
+        # In practice, you might need to match by taxa/cluster ID
+        offspring_counts = []
+        
+        # For each sample iteration, get the leafsWith values
+        # Filter for clusters that correspond to HPAI+LPAI events in HPAI lineage
+        for iteration in cluster_data['iteration'].unique():
+            iter_clusters = cluster_data[cluster_data['iteration'] == iteration]
+            # Get leafsWith for clusters with reassortment (leafsWith > 0)
+            # These represent offspring counts for reassortment events
+            if 'leafsWith' in iter_clusters.columns:
+                # Filter for clusters with reassortment events
+                reassortment_clusters = iter_clusters[iter_clusters['leafsWith'] > 0]
+                if len(reassortment_clusters) > 0:
+                    offspring_counts.extend(reassortment_clusters['leafsWith'].values)
+        
+        if len(offspring_counts) == 0:
+            # Fallback: use all leafsWith values
+            if 'leafsWith' in cluster_data.columns:
+                offspring_counts = cluster_data[cluster_data['leafsWith'] > 0]['leafsWith'].values.tolist()
+        
+        if len(offspring_counts) == 0:
+            ax.text(0.5, 0.5, "No offspring data available\nin cluster comparison file", 
+                    ha='center', va='center', transform=ax.transAxes)
+            return
+        
+        # Convert to numpy array for easier handling
+        offspring_counts = np.array(offspring_counts)
+        
+        # Plot histogram
+        n, bins, patches = ax.hist(offspring_counts, bins=30, alpha=0.7, color='#377EB8',
+                                   density=True, edgecolor='black', linewidth=0.5)
+        
+        ax.set_xlabel('Number of Offspring')
+        ax.set_ylabel('Density')
+        ax.set_title('HPAI from LPAI Events', fontsize=11, fontweight='bold')
+        
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.3, axis='y')
+        
+        # Add summary statistics
+        mean_offspring = offspring_counts.mean()
+        median_offspring = np.median(offspring_counts)
+        ax.axvline(mean_offspring, color='red', linestyle='--', linewidth=1.5, 
+                  label=f'Mean: {mean_offspring:.2f}')
+        ax.axvline(median_offspring, color='orange', linestyle='--', linewidth=1.5, 
+                  label=f'Median: {median_offspring:.1f}')
+        ax.legend(loc='upper right', fontsize=9)
+        
+    except Exception as e:
+        ax.text(0.5, 0.5, f"Error loading cluster data:\n{str(e)}", 
+                ha='center', va='center', transform=ax.transAxes, fontsize=8)
+        import traceback
+        traceback.print_exc()
+
+
+def create_main_figure(path, is_constant=True, force=False):
     """Create the main composite figure (Figure 2) using baltic_bacter"""
+    # Run ClusterSizeComparison if needed
+    run_cluster_size_comparison(path, force=force)
+    
     # Load all necessary data
     clades, rate_shifts, mrsi, mrsi_hpai, mrsi_lpai, mrsi_dec, segment_order, \
     methods_colors, species_colors, clade_colors, lineage_colors = define_constants()
@@ -545,9 +667,9 @@ def create_main_figure(path, is_constant=True):
     hpai_events = load_clade_events(path, is_constant)
     distr_df, co_rea_df = calculate_event_distribution(hpai_events, segment_order)
     
-    # Create figure with subplots
-    fig = plt.figure(figsize=(12, 8))
-    gs = gridspec.GridSpec(2, 3, width_ratios=[2, 1, 1], height_ratios=[1, 1])
+    # Create figure with subplots - add extra space for new subplot
+    fig = plt.figure(figsize=(14, 8))
+    gs = gridspec.GridSpec(2, 4, width_ratios=[2, 1, 1, 1], height_ratios=[1, 1])
     
     # Panel A: Main HA tree with clade coloring
     ax_tree = fig.add_subplot(gs[:, 0])
@@ -556,7 +678,7 @@ def create_main_figure(path, is_constant=True):
     ax_tree.set_title("A", loc='left', fontweight='bold')
     
     # Panel B: Co-reassortment
-    ax_corea = fig.add_subplot(gs[0, 1:])
+    ax_corea = fig.add_subplot(gs[0, 1:3])
     plot_co_reassortment(ax_corea, co_rea_df, lineage_colors)
     ax_corea.set_title("B", loc='left', fontweight='bold')
     
@@ -572,11 +694,16 @@ def create_main_figure(path, is_constant=True):
     draw_segment_tree(ax_tree_d, ll_pb2, mrsi_dec, lineage_colors, "PB2", linewidth=0.5)
     ax_tree_d.set_title("D", loc='left', fontweight='bold')
     
+    # Panel E: Offspring distribution for HPAI from LPAI events
+    ax_offspring = fig.add_subplot(gs[1, 3])
+    plot_offspring_hpai_from_lpai(ax_offspring, hpai_events, path)
+    ax_offspring.set_title("E", loc='left', fontweight='bold')
+    
     plt.tight_layout()
     return fig
 
 
-def main():
+def main(force=False):
     """Main execution function"""
     setup_matplotlib()
     
@@ -600,7 +727,9 @@ def main():
         # Create reassortment rate plot
         
         # Create main composite figure with baltic_bacter trees
-        fig2 = create_main_figure(path, is_constant)
+        output_dir = '/Users/nmueller/Documents/github/CoInfection-Material/Figures/'
+        os.makedirs(output_dir, exist_ok=True)
+        fig2 = create_main_figure(path, is_constant, force=force)
         fig2.savefig(f"{output_dir}Figure2.pdf", bbox_inches='tight')
         plt.show()
         plt.close(fig2)
@@ -624,4 +753,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Generate H5N1 LPAI analysis plots')
+    parser.add_argument('--force', action='store_true',
+                       help='Force rerun of ClusterSizeComparison, even if output file exists')
+    
+    args = parser.parse_args()
+    main(force=args.force)
