@@ -82,3 +82,6 @@ Rscript plotSIRResults.R
    Rscript MCC_targetedbeast_tmrca_geno_flyway.R
    Rscript MCC_targetedbeast_tmrca_geno_orders.R
    ```
+### XML Generation
+
+To generate coalRe XML files for a dataset/virus with a given number of segments see **buildCoalReXml.R** in Scripts_and_XML/code direcory. **README_buildCoalReXml.md** for more information on how to run the script. 
